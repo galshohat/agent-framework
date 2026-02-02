@@ -4,11 +4,9 @@ Agent definitions for OpsCopilot demo.
 import os
 from dotenv import load_dotenv
 
-from agent_framework import Agent
-from agent_framework.chat_completion import (
-    AzureOpenAIChatClient,
-    OpenAIChatClient,
-)
+from agent_framework import ChatAgent
+from agent_framework.azure import AzureOpenAIChatClient
+from azure.identity import DefaultAzureCredential, AzureCliCredential
 
 from .models import TriageResult, FinalPlan
 from .tools import (
@@ -18,7 +16,7 @@ from .tools import (
     restart_service,
     open_sev1_bridge,
 )
-from .middleware import LoggingAgentMiddleware, LoggingFunctionMiddleware
+from .middleware import logging_agent_middleware, logging_function_middleware
 from .memory import get_ops_memory
 
 # Load environment variables
@@ -28,36 +26,26 @@ load_dotenv()
 def create_chat_client():
     """
     Create a chat client based on environment configuration.
-    Uses Azure OpenAI if configured, otherwise falls back to OpenAI.
+    Uses Azure OpenAI with DefaultAzureCredential or AzureCliCredential.
     """
-    # Check for Azure OpenAI configuration
-    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    azure_key = os.getenv("AZURE_OPENAI_API_KEY")
-    azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
-    
-    if azure_endpoint and azure_key:
-        print("🔵 Using Azure OpenAI")
-        return AzureOpenAIChatClient(
-            endpoint=azure_endpoint,
-            api_key=azure_key,
-            deployment=azure_deployment,
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
+    # Try to use Azure CLI credential for local development
+    try:
+        credential = AzureCliCredential()
+        print("🔵 Using Azure OpenAI with Azure CLI credential")
+        return AzureOpenAIChatClient(credential=credential)
+    except Exception as e:
+        print(f"⚠️ Azure CLI credential failed: {e}")
+        
+    # Fall back to DefaultAzureCredential
+    try:
+        credential = DefaultAzureCredential()
+        print("🔵 Using Azure OpenAI with DefaultAzureCredential")
+        return AzureOpenAIChatClient(credential=credential)
+    except Exception as e:
+        raise ValueError(
+            f"Failed to create Azure OpenAI client: {e}\n"
+            "Make sure you are logged in with Azure CLI: az login"
         )
-    
-    # Fall back to OpenAI
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if openai_key:
-        print("🟢 Using OpenAI")
-        return OpenAIChatClient(
-            api_key=openai_key,
-            model=os.getenv("OPENAI_MODEL", "gpt-4o"),
-        )
-    
-    raise ValueError(
-        "No AI configuration found. Set either:\n"
-        "  - AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY, or\n"
-        "  - OPENAI_API_KEY"
-    )
 
 
 # Shared chat client (created lazily)
@@ -72,16 +60,13 @@ def get_chat_client():
     return _chat_client
 
 
-def build_classifier_agent() -> Agent:
+def build_classifier_agent() -> ChatAgent:
     """
     Build the classifier agent that triages incidents.
     Determines category, severity, and whether approval is needed.
     """
-    return Agent(
-        id="opscopilot_classifier",
-        name="Classifier Agent",
-        description="Triages incidents by category, severity, and determines required actions",
-        chat_client=get_chat_client(),
+    return get_chat_client().as_agent(
+        name="ClassifierAgent",
         instructions="""You are an expert incident classifier for cloud operations.
 
 Your job is to analyze an incident and determine:
@@ -104,20 +89,17 @@ Set needs_approval=true if:
 
 Always output valid JSON matching the TriageResult schema.""",
         response_format=TriageResult,
-        middleware=[LoggingAgentMiddleware(), LoggingFunctionMiddleware()],
+        middleware=[logging_agent_middleware, logging_function_middleware],
         context_providers=[get_ops_memory()],
     )
 
 
-def build_writer_agent() -> Agent:
+def build_writer_agent() -> ChatAgent:
     """
     Build the writer agent that creates the final incident plan.
     """
-    return Agent(
-        id="opscopilot_writer",
-        name="Writer Agent",
-        description="Creates final incident response plans with customer communication",
-        chat_client=get_chat_client(),
+    return get_chat_client().as_agent(
+        name="WriterAgent",
         instructions="""You are an expert technical writer for cloud operations.
 
 Your job is to create a comprehensive incident response plan that includes:
@@ -132,28 +114,20 @@ Guidelines:
 - Customer message should be empathetic and informative
 - Internal notes can include technical details and caveats
 
-Use the available tools to gather enrichment data:
-- fetch_service_health: Get current service status
-- lookup_runbook: Find relevant runbook procedures
-- search_known_issues: Check for known issues
-
 Always output valid JSON matching the FinalPlan schema.""",
         response_format=FinalPlan,
         tools=[fetch_service_health, lookup_runbook, search_known_issues],
-        middleware=[LoggingAgentMiddleware(), LoggingFunctionMiddleware()],
+        middleware=[logging_agent_middleware, logging_function_middleware],
         context_providers=[get_ops_memory()],
     )
 
 
-def build_qa_agent() -> Agent:
+def build_qa_agent() -> ChatAgent:
     """
     Build the QA agent that reviews plans for safety and consistency.
     """
-    return Agent(
-        id="opscopilot_qa",
-        name="QA Agent",
-        description="Reviews incident plans for safety, consistency, and completeness",
-        chat_client=get_chat_client(),
+    return get_chat_client().as_agent(
+        name="QAAgent",
         instructions="""You are a quality assurance reviewer for incident response plans.
 
 Your job is to review a proposed incident plan and:
@@ -168,12 +142,12 @@ Output your review as plain text with:
 - Suggested improvements (if any)
 
 Be constructive but thorough. Safety is the top priority.""",
-        middleware=[LoggingAgentMiddleware(), LoggingFunctionMiddleware()],
+        middleware=[logging_agent_middleware, logging_function_middleware],
         context_providers=[get_ops_memory()],
     )
 
 
-def build_agents() -> dict[str, Agent]:
+def build_agents() -> dict[str, ChatAgent]:
     """
     Build all agents and return them in a dictionary.
     """

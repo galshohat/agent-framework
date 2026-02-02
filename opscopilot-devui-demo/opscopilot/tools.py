@@ -2,10 +2,11 @@
 Mock tools for OpsCopilot demo.
 All tools return deterministic mock data - no external calls.
 """
-from agent_framework import tool
+from typing import Annotated
+from pydantic import Field
+from agent_framework import ai_function
 
 
-@tool
 def fetch_service_health(service: str) -> str:
     """
     Fetch current health status for a service.
@@ -34,7 +35,6 @@ def fetch_service_health(service: str) -> str:
     return f"Status: Unknown. No health data available for {service}."
 
 
-@tool
 def lookup_runbook(service: str, category: str) -> str:
     """
     Look up the relevant runbook for a service and incident category.
@@ -92,7 +92,6 @@ def lookup_runbook(service: str, category: str) -> str:
     return f"No specific runbook found for {service}/{category}. Follow general incident response procedures."
 
 
-@tool
 def search_known_issues(service: str, keywords: str) -> str:
     """
     Search for known issues matching service and keywords.
@@ -126,8 +125,10 @@ def search_known_issues(service: str, keywords: str) -> str:
     return f"No known issues found for {service} with keywords: {keywords}"
 
 
-@tool(approval_mode="always_require")
-def restart_service(service: str) -> str:
+@ai_function(approval_mode="always_require")
+def restart_service(
+    service: Annotated[str, Field(description="The service name to restart")]
+) -> str:
     """
     Restart a service. DANGEROUS ACTION - requires approval.
     
@@ -141,8 +142,11 @@ def restart_service(service: str) -> str:
     return f"[MOCK] Service '{service}' has been restarted successfully. Recovery time: ~2 minutes."
 
 
-@tool(approval_mode="always_require")
-def open_sev1_bridge(incident_id: str, customer: str) -> str:
+@ai_function(approval_mode="always_require")
+def open_sev1_bridge(
+    incident_id: Annotated[str, Field(description="The incident ID to open bridge for")],
+    customer: Annotated[str, Field(description="The customer name")]
+) -> str:
     """
     Open a Sev1 bridge call. DANGEROUS ACTION - requires approval.
     

@@ -26,7 +26,7 @@ Run Instructions:
    python run_devui.py
 
 5. Open your browser to:
-   http://localhost:8080
+   http://localhost:8181
 
 Usage in DevUI:
 ---------------
@@ -97,14 +97,12 @@ def main():
         agents["qa"],
     ]
     
-    print(f"✅ Registering {len(entities)} entities with DevUI:")
-    for entity in entities:
-        print(f"   - {entity.name} ({entity.id})")
+    print(f"✅ Registering {len(entities)} entities with DevUI")
     print("")
     
     # Start DevUI server
     print("🌐 Starting DevUI server...")
-    print("   URL: http://localhost:8080")
+    print("   URL: http://localhost:8282")
     print("")
     print("=" * 50)
     print("Press Ctrl+C to stop the server")
@@ -114,8 +112,8 @@ def main():
     serve(
         entities=entities,
         auto_open=True,
-        host="0.0.0.0",
-        port=8080,
+        host="127.0.0.1",
+        port=8282,
     )
 
 

@@ -3,7 +3,8 @@ Simple memory/context provider for OpsCopilot demo.
 """
 import re
 from typing import Any
-from agent_framework import ContextProvider, AgentRunContext
+from collections.abc import MutableSequence, Sequence
+from agent_framework import ContextProvider, Context, ChatMessage
 
 
 class OpsMemory(ContextProvider):
@@ -21,7 +22,7 @@ class OpsMemory(ContextProvider):
         self.last_customer: str | None = None
         self.last_service: str | None = None
     
-    async def invoking(self, context: AgentRunContext) -> str | None:
+    async def invoking(self, messages: ChatMessage | MutableSequence[ChatMessage], **kwargs: Any) -> Context:
         """
         Called before agent runs. Returns context instructions.
         """
@@ -40,17 +41,32 @@ class OpsMemory(ContextProvider):
         if self.last_customer:
             instructions.append(f"Context: Previous customer was '{self.last_customer}'.")
         
-        return " ".join(instructions) if instructions else None
+        return Context(instructions=" ".join(instructions) if instructions else None)
     
-    async def invoked(self, context: AgentRunContext, result: Any) -> None:
+    async def invoked(
+        self,
+        request_messages: ChatMessage | Sequence[ChatMessage],
+        response_messages: ChatMessage | Sequence[ChatMessage] | None = None,
+        invoke_exception: Exception | None = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Called after agent runs. Extracts and stores context.
         """
-        # Try to extract customer and service from the input messages
-        if hasattr(context, 'messages'):
-            for msg in context.messages:
-                content = str(msg.content) if hasattr(msg, 'content') else str(msg)
-                self._extract_context(content)
+        # Ensure request_messages is a list
+        messages_list = [request_messages] if isinstance(request_messages, ChatMessage) else list(request_messages)
+        
+        # Look for user messages and extract info
+        for msg in messages_list:
+            if hasattr(msg, 'role') and msg.role.value == "user":
+                # Get the text content from the message
+                text = ""
+                if hasattr(msg, 'contents') and msg.contents:
+                    for content in msg.contents:
+                        if hasattr(content, 'text'):
+                            text += content.text + " "
+                
+                self._extract_context(text)
     
     def _extract_context(self, text: str) -> None:
         """Extract customer and service from text using simple patterns."""
@@ -80,12 +96,17 @@ class OpsMemory(ContextProvider):
         """Clear memory state."""
         self.last_customer = None
         self.last_service = None
+    
+    def serialize(self) -> str:
+        """Serialize the memory for thread persistence."""
+        import json
+        return json.dumps(self.get_state())
 
 
 # Global instance for sharing across agents
-ops_memory = OpsMemory()
+_ops_memory = OpsMemory()
 
 
 def get_ops_memory() -> OpsMemory:
     """Return the shared OpsMemory instance."""
-    return ops_memory
+    return _ops_memory
