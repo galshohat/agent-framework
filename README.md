@@ -1,94 +1,102 @@
-# Microsoft Agent Framework - Demo Repository
+# 📧 Support Email Copilot — Microsoft Agent Framework
 
-This repository demonstrates the **Microsoft Agent Framework** - a Python SDK for building AI agents with Azure OpenAI. The demos showcase key framework capabilities including multi-agent orchestration, workflows, tool calling, and human-in-the-loop approval patterns.
+A complete learning journey to build an AI-powered support email system using the **Microsoft Agent Framework**. This notebook progressively teaches you all major framework capabilities through a practical use case.
 
-## What is Agent Framework?
+## 🎯 What You'll Build
 
-Agent Framework is Microsoft's SDK for building production-ready AI agents that can:
-- 🤖 **Orchestrate multiple agents** working together
-- 🔄 **Execute workflows** with routing, fan-out/fan-in, and state management
-- 🛠️ **Call tools** (functions) with structured inputs/outputs
-- ✋ **Require human approval** for dangerous operations
-- 📊 **Provide observability** through middleware hooks
-- 🧠 **Maintain context** via memory/context providers
+By completing this notebook, you'll have built a **Support Email Copilot** that:
 
-## Demos
+- ✅ **Classifies** incoming emails (Spam / Not Spam / Uncertain)
+- ✅ **Looks up** customer SLA and ticket status via function tools
+- ✅ **Drafts** professional responses with customizable tone
+- ✅ **Requires approval** before sending sensitive replies
+- ✅ **Remembers** user preferences (language, tone, name)
+- ✅ **Processes in parallel** for long emails (response + summary)
+- ✅ **Uses multiple reviewers** for quality control (security, tone, accuracy)
+- ✅ **Logs** every operation for observability
 
-### 1. Basic Notebook Demo (`agent_framework.ipynb`)
+## 📚 Table of Contents
 
-A Jupyter notebook showing fundamental agent interactions:
-- Creating a chat client with Azure OpenAI
-- Building simple agents
-- Basic conversation flows
+| # | Section | What You'll Learn |
+|---|---------|------------------|
+| **0** | Shared Setup | Environment, models, sample data |
+| **1** | Basic Agent | Create and run your first agent |
+| **2** | Streaming | Real-time token streaming |
+| **3** | Multi-Turn Conversations | Thread-based memory |
+| **4** | Function Tools | Add custom capabilities |
+| **5** | Human-in-the-Loop | Approval workflows |
+| **6** | Middleware | Logging & observability |
+| **7** | Memory | Persistent user context |
+| **8** | Sequential Workflows | Classify → Draft → Review |
+| **9** | Branching Logic | Spam vs. NotSpam vs. Uncertain |
+| **10** | Fan-Out/Fan-In | Parallel processing |
+| **11** | Multi-Agent Group Chat | Team collaboration |
+| **12** | Capstone Demo | End-to-end system |
 
-**Best for**: Getting started, understanding core concepts
-
-### 2. OpsCopilot DevUI Demo (`opscopilot-devui-demo/`)
-
-A complete incident triage system demonstrating **all major framework features**:
-
-| Feature | Implementation |
-|---------|----------------|
-| **Multi-Agent** | Classifier → Writer → QA agents |
-| **Workflow** | 3-step orchestration with executor routing |
-| **Tools** | Enrichment tools + dangerous action tools |
-| **Human-in-the-Loop** | Approval required for `restart_service`, `open_sev1_bridge` |
-| **Middleware** | Logging hooks for agent and function calls |
-| **Memory** | Context providers for user preferences |
-| **DevUI** | Visual interface at http://localhost:8282 |
-
-**Best for**: Understanding production patterns, exploring the DevUI
-
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
+1. ✅ **Azure subscription** with access to Azure OpenAI
+2. ✅ **Azure OpenAI resource** with a deployed model (e.g., `gpt-4o-mini`)
+3. ✅ **Azure CLI** installed and authenticated (`az login`)
+4. ✅ **Python 3.10+**
+
+### Setup
+
 ```bash
-# 1. Azure CLI login (required for authentication)
+# 1. Clone the repository
+git clone <repo-url>
+cd agent-framework
+
+# 2. Create virtual environment
+python3.10 -m venv .venv
+source .venv/bin/activate
+
+# 3. Install dependencies
+pip install agent-framework --pre python-dotenv nest_asyncio
+
+# 4. Configure environment
+# Create a .env file with:
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-4o-mini
+
+# 5. Login to Azure
 az login
 
-# 2. Set environment variables
-export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-export AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-4o-mini
-```
-
-### Run the Notebook Demo
-
-```bash
-pip install agent-framework --pre python-dotenv
+# 6. Open the notebook
 jupyter notebook agent_framework.ipynb
+# Or open in VS Code
 ```
 
-### Run the OpsCopilot DevUI Demo
+## 🏗️ Framework Features Demonstrated
 
-```bash
-cd opscopilot-devui-demo
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python run_devui.py
-# Open http://localhost:8282
-```
+| Feature | Section | Description |
+|---------|---------|-------------|
+| **ChatAgent** | 1-3 | Core agent with instructions, streaming, threads |
+| **Function Tools** | 4 | `@tool` decorator for custom capabilities |
+| **Approval Mode** | 5 | `approval_mode="always_require"` for HITL |
+| **Middleware** | 6 | Agent and function invocation hooks |
+| **ContextProvider** | 7 | Memory with `invoking`/`invoked` lifecycle |
+| **WorkflowBuilder** | 8-10 | Sequential, branching, fan-out patterns |
+| **AgentExecutor** | 8-10 | Wrap agents for workflow orchestration |
+| **Switch-Case** | 9 | Multi-way routing with `Case`/`Default` |
+| **Multi-Selection** | 10 | Dynamic fan-out to parallel paths |
+| **Fan-In** | 10 | Aggregate results from parallel execution |
+| **ConcurrentBuilder** | 11 | Parallel multi-agent processing |
+| **MagenticBuilder** | 11 | Manager-orchestrated agent teams |
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 agent-framework/
-├── agent_framework.ipynb              # Basic notebook demo
-├── opscopilot-devui-demo/             # Full-featured DevUI demo
-│   ├── opscopilot/
-│   │   ├── models.py                  # Pydantic data models
-│   │   ├── mock_data.py               # Sample incidents
-│   │   ├── tools.py                   # AI functions with approval
-│   │   ├── middleware.py              # Logging middleware
-│   │   ├── memory.py                  # Context providers
-│   │   ├── agents.py                  # Agent definitions
-│   │   └── workflow.py                # Workflow orchestration
-│   ├── run_devui.py                   # Server launcher
-│   └── README.md                      # Detailed demo docs
-└── README.md                          # This file
+├── agent_framework.ipynb    # Main tutorial notebook (12 sections)
+├── .env                     # Azure OpenAI configuration
+├── .venv/                   # Python virtual environment
+└── README.md                # This file
 ```
 
-## Learn More
+## 📖 Learn More
 
 - [Agent Framework Documentation](https://github.com/microsoft/agent-framework)
 - [Azure OpenAI Service](https://azure.microsoft.com/products/ai-services/openai-service)
