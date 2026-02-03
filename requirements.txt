@@ -1,0 +1,20 @@
+# Microsoft Agent Framework (pre-release)
+# IMPORTANT: Install with --pre flag: pip install -U agent-framework --pre
+# This is REQUIRED to get the latest features including as_agent() method
+agent-framework
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Async support for Jupyter notebooks
+nest-asyncio>=1.5.0
+
+# Azure authentication
+azure-identity>=1.15.0
+
+# Data validation and settings management (required by agent-framework)
+pydantic>=2.0.0
+
+# Optional: For enhanced development experience
+# jupyter>=1.0.0
+# ipykernel>=6.29.0
