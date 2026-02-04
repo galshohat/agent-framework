@@ -1,4 +1,6 @@
 ---
+engine: copilot
+
 on:
   push:
     branches: [main]
