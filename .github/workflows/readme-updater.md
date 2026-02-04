@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  issues: read
 
 safe-outputs:
   create-pull-request: {}
