@@ -4,6 +4,8 @@ engine: copilot
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/workflows/**'
 
 permissions:
   contents: read
@@ -19,7 +21,7 @@ tools:
   edit: {}
 ---
 
-# README Updater
+# Docs Updater
 
 You are a documentation maintainer.
 
