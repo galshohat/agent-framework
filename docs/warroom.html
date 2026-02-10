@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarRoom — Multi-Agent Decision System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #7c3aed;
+            --success: #059669;
+            --success-light: #10b981;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --bg-alt: #f1f5f9;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --border-dark: #cbd5e1;
+            --text: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            
+            /* Agent Colors - Professional */
+            --sales: #059669;
+            --risk: #dc2626;
+            --ops: #d97706;
+            --strategy: #2563eb;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-16px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 32px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(5, 150, 105, 0.1);
+            border: 1px solid rgba(5, 150, 105, 0.2);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .header-time {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Mission Banner */
+        .mission-banner {
+            text-align: center;
+            padding: 40px 32px;
+            background: linear-gradient(180deg, var(--card-bg) 0%, var(--bg) 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mission-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 6px 14px;
+            background: rgba(37, 99, 235, 0.08);
+            border-radius: 100px;
+        }
+
+        .mission-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
+        .mission-desc {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 260px 1fr 300px;
+            gap: 24px;
+            padding: 24px 32px;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-alt);
+        }
+
+        .panel-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: white;
+        }
+
+        .panel-status {
+            font-size: 0.7rem;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .panel-content {
+            padding: 16px;
+        }
+
+        /* Agents Panel */
+        .agents-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .agent-card {
+            padding: 14px;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .agent-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--agent-color);
+            border-radius: 3px 0 0 3px;
+        }
+
+        .agent-card.active {
+            border-color: var(--agent-color);
+            background: var(--card-bg);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .agent-card.speaking {
+            border-color: var(--agent-color);
+        }
+
+        .agent-card.speaking::after {
+            content: 'Speaking';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            background: var(--agent-color);
+            color: white;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .agent-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            background: var(--card-bg);
+            border: 2px solid var(--agent-color);
+        }
+
+        .agent-info h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .agent-info span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .agent-stance {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            padding: 5px 10px;
+            background: var(--card-bg);
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .stance-approve { color: var(--success); }
+        .stance-reject { color: var(--danger); }
+        .stance-neutral { color: var(--warning); }
+
+        /* Conversation Panel */
+        .conversation-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .conversation-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 580px;
+            min-height: 480px;
+            background: var(--bg-alt);
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            background: var(--card-bg);
+            border: 2px solid var(--agent-color);
+        }
+
+        .message-content {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            color: var(--agent-color);
+            font-size: 0.85rem;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: var(--text-light);
+        }
+
+        .message-text {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+
+        .message-reasoning {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg-alt);
+            border-radius: 8px;
+            border-left: 3px solid var(--agent-color);
+        }
+
+        .reasoning-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .reasoning-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .message-stance {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .message-stance.approve {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success);
+        }
+
+        .message-stance.reject {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+        }
+
+        .message-stance.caution {
+            background: rgba(217, 119, 6, 0.1);
+            color: var(--warning);
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .typing-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            background: var(--card-bg);
+            border: 2px solid var(--agent-color);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        .typing-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Controls */
+        .conversation-controls {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            background: var(--card-bg);
+        }
+
+        .ctrl-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: inherit;
+            font-weight: 500;
+        }
+
+        .ctrl-btn:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .ctrl-btn.active {
+            border-color: var(--success);
+            background: rgba(5, 150, 105, 0.08);
+            color: var(--success);
+        }
+
+        .ctrl-btn.primary {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+
+        .ctrl-btn.primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Decision Panel */
+        .decision-panel .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Metric Cards */
+        .metric-card {
+            padding: 16px;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        /* Consensus Meter */
+        .consensus-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .consensus-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .consensus-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--danger), var(--warning), var(--success));
+            border-radius: 3px;
+            transition: width 0.8s ease;
+        }
+
+        /* Risk Meter */
+        .risk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .risk-value {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .risk-value.low {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success);
+        }
+
+        .risk-value.medium {
+            background: rgba(217, 119, 6, 0.1);
+            color: var(--warning);
+        }
+
+        .risk-value.high {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+        }
+
+        .risk-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .risk-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.8s, background 0.8s;
+        }
+
+        .risk-bar-fill.low { background: var(--success); }
+        .risk-bar-fill.medium { background: var(--warning); }
+        .risk-bar-fill.high { background: var(--danger); }
+
+        .risk-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.65rem;
+            color: var(--text-light);
+            margin-top: 6px;
+        }
+
+        /* Confidence Level */
+        .confidence-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--secondary);
+            text-align: center;
+        }
+
+        .confidence-bars {
+            display: flex;
+            justify-content: center;
+            gap: 3px;
+            margin-top: 10px;
+        }
+
+        .conf-bar {
+            width: 6px;
+            height: 24px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .conf-bar-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--secondary);
+            border-radius: 3px;
+            transition: height 0.5s ease;
+        }
+
+        /* Vote Summary */
+        .vote-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .vote-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        .vote-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .vote-item.approve .vote-icon {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success);
+        }
+
+        .vote-item.reject .vote-icon {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+        }
+
+        .vote-item.caution .vote-icon {
+            background: rgba(217, 119, 6, 0.1);
+            color: var(--warning);
+        }
+
+        .vote-item.pending .vote-icon {
+            background: var(--bg-alt);
+            color: var(--text-light);
+        }
+
+        /* Decision Card */
+        .decision-card {
+            background: var(--card-bg);
+            border: 2px solid var(--success);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .decision-card.show {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .decision-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .decision-result {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .decision-result.approved {
+            color: var(--success);
+        }
+
+        .decision-result.rejected {
+            color: var(--danger);
+        }
+
+        .decision-result.pending {
+            color: var(--warning);
+        }
+
+        .decision-summary {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 32px;
+            border-top: 1px solid var(--border);
+            background: var(--card-bg);
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .footer-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .footer-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer-text strong {
+            color: var(--text);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-alt);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-dark);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-light);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                padding: 16px;
+            }
+
+            .agents-panel {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 12px 16px;
+            }
+
+            .mission-banner {
+                padding: 24px 16px;
+            }
+
+            .mission-title {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">⚡</div>
+            <div>
+                <div class="logo-text">WarRoom</div>
+                <div class="logo-subtitle">Multi-Agent Decision System</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                Session Active
+            </div>
+            <div class="header-time" id="currentTime">00:00:00</div>
+        </div>
+    </header>
+
+    <!-- Mission Banner -->
+    <section class="mission-banner">
+        <div class="mission-label">
+            📋 Strategic Decision Required
+        </div>
+        <h1 class="mission-title">"Should we launch product in Germany?"</h1>
+        <p class="mission-desc">Multi-agent deliberation in progress. AI advisors are analyzing market data, risk factors, and operational requirements.</p>
+    </section>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Agents Panel -->
+        <aside class="panel agents-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="panel-title-icon">👥</div>
+                    AI Advisors
+                </div>
+                <div class="panel-status">
+                    <span class="status-dot"></span>
+                    Online
+                </div>
+            </div>
+            <div class="panel-content">
+                <div class="agents-list" id="agentsList">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Conversation Panel -->
+        <section class="panel conversation-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="panel-title-icon">💬</div>
+                    Strategic Deliberation
+                </div>
+                <div class="panel-status">
+                    <span class="status-dot"></span>
+                    Live
+                </div>
+            </div>
+            
+            <div class="conversation-area" id="conversationArea">
+                <!-- Messages will appear here -->
+            </div>
+
+            <div class="conversation-controls">
+                <button class="ctrl-btn active" id="autoRunBtn" onclick="toggleAutoRun()">
+                    ▶ Auto
+                </button>
+                <button class="ctrl-btn" onclick="resetConversation()">
+                    ↻ Reset
+                </button>
+                <button class="ctrl-btn primary" onclick="skipToDecision()">
+                    Skip to Decision →
+                </button>
+            </div>
+        </section>
+
+        <!-- Decision Panel -->
+        <aside class="panel decision-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="panel-title-icon">📊</div>
+                    Decision Metrics
+                </div>
+            </div>
+            <div class="panel-content">
+                <!-- Consensus Meter -->
+                <div class="metric-card">
+                    <div class="metric-label">Consensus Score</div>
+                    <div class="consensus-value" id="consensusValue">—</div>
+                    <div class="consensus-bar">
+                        <div class="consensus-fill" id="consensusFill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Risk Meter -->
+                <div class="metric-card">
+                    <div class="risk-header">
+                        <div class="metric-label">Risk Assessment</div>
+                        <div class="risk-value medium" id="riskValue">—</div>
+                    </div>
+                    <div class="risk-bar-container">
+                        <div class="risk-bar">
+                            <div class="risk-bar-fill medium" id="riskFill" style="width: 50%"></div>
+                        </div>
+                    </div>
+                    <div class="risk-labels">
+                        <span>Low</span>
+                        <span>Medium</span>
+                        <span>High</span>
+                    </div>
+                </div>
+
+                <!-- Confidence Level -->
+                <div class="metric-card">
+                    <div class="metric-label">Confidence Level</div>
+                    <div class="confidence-value" id="confidenceValue">—</div>
+                    <div class="confidence-bars" id="confidenceBars">
+                        <!-- Bars populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Vote Summary -->
+                <div class="metric-card">
+                    <div class="metric-label">Agent Positions</div>
+                    <div class="vote-grid" id="voteGrid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Decision Card -->
+                <div class="decision-card" id="decisionCard">
+                    <div class="decision-label">Final Recommendation</div>
+                    <div class="decision-result approved" id="decisionResult">APPROVED</div>
+                    <div class="decision-summary" id="decisionSummary">
+                        Based on multi-agent consensus analysis with high confidence in market opportunity.
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-brand">
+            <div class="footer-logo">🔬</div>
+            <div class="footer-text">Powered by <strong>UBTECH AI Lab</strong></div>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        
+        const CONFIG = {
+            autoRun: true,
+            messageDelay: 3500,
+            typingDuration: 1500,
+            decisionDelay: 2000
+        };
+
+        // ============================================
+        // AGENTS DATA
+        // ============================================
+
+        const agents = [
+            {
+                id: 'sales',
+                name: 'Sales Agent',
+                role: 'Revenue & Market',
+                icon: '📈',
+                color: 'var(--sales)',
+                stance: 'approve'
+            },
+            {
+                id: 'risk',
+                name: 'Risk Agent',
+                role: 'Risk & Compliance',
+                icon: '⚠️',
+                color: 'var(--risk)',
+                stance: 'caution'
+            },
+            {
+                id: 'ops',
+                name: 'Operations Agent',
+                role: 'Logistics & Infra',
+                icon: '⚙️',
+                color: 'var(--ops)',
+                stance: 'neutral'
+            },
+            {
+                id: 'strategy',
+                name: 'Strategy Agent',
+                role: 'Long-term Planning',
+                icon: '🎯',
+                color: 'var(--strategy)',
+                stance: 'approve'
+            }
+        ];
+
+        // ============================================
+        // CONVERSATION SCRIPT
+        // ============================================
+
+        const conversationScript = [
+            {
+                agent: 'sales',
+                text: "Germany represents our largest untapped European market. With 83 million potential customers and high digital adoption rates, I project €12M revenue in Year 1 alone. The market timing is excellent — competitors are still establishing their presence.",
+                reasoning: "Analyzed 847 data points including GDP per capita, e-commerce penetration, and competitor market share.",
+                stance: 'approve'
+            },
+            {
+                agent: 'risk',
+                text: "I must raise concerns. GDPR compliance costs alone will exceed €800K initially. There's also regulatory uncertainty around AI products in the EU. The German market has historically been resistant to foreign tech solutions — churn risk is 34% higher than US markets.",
+                reasoning: "Cross-referenced EU regulatory framework, historical market entry failures, and compliance cost models.",
+                stance: 'reject'
+            },
+            {
+                agent: 'ops',
+                text: "Logistically, we're positioned for this. Frankfurt data center is ready, and we have a partnership with Deutsche Telekom for local infrastructure. However, I need 6 months lead time for full localization — not 3 months as proposed.",
+                reasoning: "Reviewed infrastructure readiness, localization requirements, and vendor contracts.",
+                stance: 'caution'
+            },
+            {
+                agent: 'strategy',
+                text: "Long-term, Germany is the gateway to the EU. Missing this window could set us back 2-3 years competitively. I disagree with Risk Agent — our AI compliance team has already mapped the regulatory path. The €800K investment pays off 15x over 5 years.",
+                reasoning: "Strategic modeling shows 94% probability of positive ROI with phased entry approach.",
+                stance: 'approve'
+            },
+            {
+                agent: 'risk',
+                text: "I acknowledge Strategy's point, but we shouldn't underestimate localization challenges. German customers expect native-level support. I can accept a CONDITIONAL APPROVAL — but only with a 6-month timeline and €200K contingency buffer.",
+                reasoning: "Revised risk assessment accounting for extended timeline reduces failure probability by 47%.",
+                stance: 'caution'
+            },
+            {
+                agent: 'sales',
+                text: "I can work with a 6-month timeline. We'll use that window for beta testing with 50 enterprise clients. This actually strengthens our market position — we enter with proven German testimonials.",
+                reasoning: "Adjusted revenue projections still show €10.5M Year 1 with phased approach. Acceptable variance.",
+                stance: 'approve'
+            },
+            {
+                agent: 'ops',
+                text: "With the extended timeline, I'm confident we can deliver. Full localization, 24/7 German support team, and EU-compliant infrastructure will be ready. I'm changing my position to APPROVE.",
+                reasoning: "Resource allocation model confirms feasibility with 6-month preparation phase.",
+                stance: 'approve'
+            },
+            {
+                agent: 'strategy',
+                text: "Consensus is forming. I recommend we proceed with the adjusted 6-month entry plan, €200K contingency, and beta customer program. All agents have aligned on core strategy with reasonable safeguards.",
+                reasoning: "Multi-agent alignment achieved. Confidence threshold exceeded for strategic recommendation.",
+                stance: 'approve'
+            }
+        ];
+
+        // ============================================
+        // STATE
+        // ============================================
+
+        let isRunning = false;
+        let currentMessageIndex = 0;
+        let autoRunEnabled = true;
+        let autoRunTimer = null;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initAgentsList();
+            initVoteGrid();
+            initConfidenceBars();
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            if (CONFIG.autoRun) {
+                setTimeout(startConversation, 1500);
+            }
+        });
+
+        function initAgentsList() {
+            const list = document.getElementById('agentsList');
+            list.innerHTML = '';
+
+            agents.forEach(agent => {
+                const card = document.createElement('div');
+                card.className = 'agent-card';
+                card.id = `agent-card-${agent.id}`;
+                card.style.setProperty('--agent-color', agent.color);
+                card.innerHTML = `
+                    <div class="agent-header">
+                        <div class="agent-avatar">${agent.icon}</div>
+                        <div class="agent-info">
+                            <h4>${agent.name}</h4>
+                            <span>${agent.role}</span>
+                        </div>
+                    </div>
+                    <div class="agent-stance stance-neutral" id="stance-${agent.id}">
+                        ⏳ Analyzing...
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function initVoteGrid() {
+            const grid = document.getElementById('voteGrid');
+            grid.innerHTML = '';
+
+            agents.forEach(agent => {
+                const item = document.createElement('div');
+                item.className = 'vote-item pending';
+                item.id = `vote-${agent.id}`;
+                item.innerHTML = `
+                    <div class="vote-icon">—</div>
+                    <span>${agent.name.split(' ')[0]}</span>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        function initConfidenceBars() {
+            const container = document.getElementById('confidenceBars');
+            container.innerHTML = '';
+
+            for (let i = 0; i < 10; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'conf-bar';
+                bar.innerHTML = `<div class="conf-bar-fill" style="height: 0%"></div>`;
+                container.appendChild(bar);
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = 
+                now.toLocaleTimeString('en-US', { hour12: false });
+        }
+
+        // ============================================
+        // CONVERSATION FLOW
+        // ============================================
+
+        function toggleAutoRun() {
+            autoRunEnabled = !autoRunEnabled;
+            const btn = document.getElementById('autoRunBtn');
+
+            if (autoRunEnabled) {
+                btn.classList.add('active');
+                btn.innerHTML = '▶ Auto';
+                if (!isRunning && currentMessageIndex < conversationScript.length) {
+                    continueConversation();
+                }
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '▶ Auto';
+                if (autoRunTimer) clearTimeout(autoRunTimer);
+            }
+        }
+
+        function startConversation() {
+            if (isRunning) return;
+            currentMessageIndex = 0;
+            clearConversation();
+            continueConversation();
+        }
+
+        function resetConversation() {
+            isRunning = false;
+            currentMessageIndex = 0;
+            if (autoRunTimer) clearTimeout(autoRunTimer);
+            
+            clearConversation();
+            initAgentsList();
+            initVoteGrid();
+            
+            // Reset metrics
+            document.getElementById('consensusValue').textContent = '—';
+            document.getElementById('consensusFill').style.width = '0%';
+            document.getElementById('riskValue').textContent = '—';
+            document.getElementById('riskFill').style.width = '50%';
+            document.getElementById('riskFill').className = 'risk-bar-fill medium';
+            document.getElementById('confidenceValue').textContent = '—';
+            document.querySelectorAll('.conf-bar-fill').forEach(bar => bar.style.height = '0%');
+            document.getElementById('decisionCard').classList.remove('show');
+
+            if (autoRunEnabled) {
+                setTimeout(startConversation, 1000);
+            }
+        }
+
+        function clearConversation() {
+            document.getElementById('conversationArea').innerHTML = '';
+        }
+
+        async function continueConversation() {
+            if (!autoRunEnabled || isRunning) return;
+            if (currentMessageIndex >= conversationScript.length) {
+                showFinalDecision();
+                return;
+            }
+
+            isRunning = true;
+            const script = conversationScript[currentMessageIndex];
+            const agent = agents.find(a => a.id === script.agent);
+
+            // Show typing indicator
+            showTypingIndicator(agent);
+            
+            // Highlight speaking agent
+            setAgentSpeaking(agent.id);
+
+            await sleep(CONFIG.typingDuration);
+
+            // Remove typing, add message
+            removeTypingIndicator();
+            addMessage(agent, script);
+
+            // Update agent stance
+            updateAgentStance(agent.id, script.stance);
+            updateVote(agent.id, script.stance);
+
+            // Update metrics
+            updateMetrics();
+
+            isRunning = false;
+            currentMessageIndex++;
+
+            if (autoRunEnabled && currentMessageIndex < conversationScript.length) {
+                autoRunTimer = setTimeout(continueConversation, CONFIG.messageDelay);
+            } else if (currentMessageIndex >= conversationScript.length) {
+                setTimeout(showFinalDecision, CONFIG.decisionDelay);
+            }
+        }
+
+        function showTypingIndicator(agent) {
+            const area = document.getElementById('conversationArea');
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.id = 'typing-indicator';
+            indicator.style.setProperty('--agent-color', agent.color);
+            indicator.innerHTML = `
+                <div class="typing-avatar" style="border-color: ${agent.color};">
+                    ${agent.icon}
+                </div>
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span class="typing-label">${agent.name} is analyzing...</span>
+            `;
+            area.appendChild(indicator);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) indicator.remove();
+        }
+
+        function addMessage(agent, script) {
+            const area = document.getElementById('conversationArea');
+            const msg = document.createElement('div');
+            msg.className = 'message';
+            msg.style.setProperty('--agent-color', agent.color);
+
+            const stanceClass = script.stance === 'approve' ? 'approve' : 
+                               script.stance === 'reject' ? 'reject' : 'caution';
+            const stanceIcon = script.stance === 'approve' ? '✓' : 
+                              script.stance === 'reject' ? '✗' : '⚠';
+            const stanceText = script.stance === 'approve' ? 'Approve' : 
+                              script.stance === 'reject' ? 'Reject' : 'Conditional';
+
+            msg.innerHTML = `
+                <div class="message-avatar" style="border-color: ${agent.color};">
+                    ${agent.icon}
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-sender" style="color: ${agent.color}">${agent.name}</span>
+                        <span class="message-time">${new Date().toLocaleTimeString()}</span>
+                    </div>
+                    <div class="message-text">${script.text}</div>
+                    <div class="message-reasoning">
+                        <div class="reasoning-label">💡 Reasoning</div>
+                        <div class="reasoning-text">${script.reasoning}</div>
+                    </div>
+                    <div class="message-stance ${stanceClass}">
+                        ${stanceIcon} ${stanceText}
+                    </div>
+                </div>
+            `;
+
+            area.appendChild(msg);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function setAgentSpeaking(agentId) {
+            // Remove speaking from all
+            document.querySelectorAll('.agent-card').forEach(card => {
+                card.classList.remove('speaking', 'active');
+            });
+
+            // Add to current
+            const card = document.getElementById(`agent-card-${agentId}`);
+            if (card) {
+                card.classList.add('speaking', 'active');
+            }
+        }
+
+        function updateAgentStance(agentId, stance) {
+            const stanceEl = document.getElementById(`stance-${agentId}`);
+            if (!stanceEl) return;
+
+            const stanceClass = stance === 'approve' ? 'stance-approve' : 
+                               stance === 'reject' ? 'stance-reject' : 'stance-neutral';
+            const stanceIcon = stance === 'approve' ? '✓' : 
+                              stance === 'reject' ? '✗' : '⚠';
+            const stanceText = stance === 'approve' ? 'Approve' : 
+                              stance === 'reject' ? 'Reject' : 'Conditional';
+
+            stanceEl.className = `agent-stance ${stanceClass}`;
+            stanceEl.textContent = `${stanceIcon} ${stanceText}`;
+        }
+
+        function updateVote(agentId, stance) {
+            const voteEl = document.getElementById(`vote-${agentId}`);
+            if (!voteEl) return;
+
+            const agent = agents.find(a => a.id === agentId);
+            const voteClass = stance === 'approve' ? 'approve' : 
+                             stance === 'reject' ? 'reject' : 'caution';
+            const voteIcon = stance === 'approve' ? '✓' : 
+                            stance === 'reject' ? '✗' : '⚠';
+
+            voteEl.className = `vote-item ${voteClass}`;
+            voteEl.innerHTML = `
+                <div class="vote-icon">${voteIcon}</div>
+                <span>${agent.name.split(' ')[0]}</span>
+            `;
+        }
+
+        function updateMetrics() {
+            const progress = currentMessageIndex / conversationScript.length;
+            
+            // Consensus Score
+            let consensus = 0;
+            if (currentMessageIndex <= 2) consensus = 25 + currentMessageIndex * 10;
+            else if (currentMessageIndex <= 4) consensus = 45 + (currentMessageIndex - 2) * 8;
+            else consensus = 60 + (currentMessageIndex - 4) * 10;
+            
+            consensus = Math.min(consensus, 87);
+            document.getElementById('consensusValue').textContent = consensus + '%';
+            document.getElementById('consensusFill').style.width = consensus + '%';
+
+            // Risk Level
+            const riskLevels = ['HIGH', 'HIGH', 'MEDIUM', 'MEDIUM', 'MEDIUM', 'LOW', 'LOW', 'LOW'];
+            const riskWidths = [85, 75, 55, 50, 45, 35, 25, 20];
+            const riskValue = riskLevels[currentMessageIndex] || 'MEDIUM';
+            const riskWidth = riskWidths[currentMessageIndex] || 50;
+            
+            const riskEl = document.getElementById('riskValue');
+            riskEl.textContent = riskValue;
+            riskEl.className = `risk-value ${riskValue.toLowerCase()}`;
+            
+            const riskFill = document.getElementById('riskFill');
+            riskFill.style.width = riskWidth + '%';
+            riskFill.className = `risk-bar-fill ${riskValue.toLowerCase()}`;
+
+            // Confidence Level
+            let confidence = 40 + currentMessageIndex * 8;
+            confidence = Math.min(confidence, 92);
+            document.getElementById('confidenceValue').textContent = confidence + '%';
+
+            // Confidence bars
+            const bars = document.querySelectorAll('.conf-bar-fill');
+            bars.forEach((bar, i) => {
+                const barHeight = Math.min(100, (confidence - 30) + (Math.random() * 20 - 10));
+                setTimeout(() => {
+                    bar.style.height = (i < currentMessageIndex + 2) ? barHeight + '%' : '10%';
+                }, i * 50);
+            });
+        }
+
+        function showFinalDecision() {
+            // Final metrics
+            document.getElementById('consensusValue').textContent = '87%';
+            document.getElementById('consensusFill').style.width = '87%';
+            
+            const riskEl = document.getElementById('riskValue');
+            riskEl.textContent = 'LOW';
+            riskEl.className = 'risk-value low';
+            
+            const riskFill = document.getElementById('riskFill');
+            riskFill.style.width = '20%';
+            riskFill.className = 'risk-bar-fill low';
+            
+            document.getElementById('confidenceValue').textContent = '94%';
+
+            // Show decision card
+            const card = document.getElementById('decisionCard');
+            card.classList.add('show');
+            card.style.borderColor = 'var(--success)';
+            document.getElementById('decisionResult').textContent = 'APPROVED';
+            document.getElementById('decisionResult').className = 'decision-result approved';
+            document.getElementById('decisionSummary').textContent = 
+                'Proceed with Germany launch: 6-month timeline, €200K contingency buffer, 50-client beta program. All agents aligned.';
+
+            // Clear speaking status
+            document.querySelectorAll('.agent-card').forEach(card => {
+                card.classList.remove('speaking', 'active');
+            });
+        }
+
+        function skipToDecision() {
+            if (autoRunTimer) clearTimeout(autoRunTimer);
+            
+            // Add all remaining messages instantly
+            while (currentMessageIndex < conversationScript.length) {
+                const script = conversationScript[currentMessageIndex];
+                const agent = agents.find(a => a.id === script.agent);
+                addMessage(agent, script);
+                updateAgentStance(agent.id, script.stance);
+                updateVote(agent.id, script.stance);
+                currentMessageIndex++;
+            }
+
+            updateMetrics();
+            setTimeout(showFinalDecision, 500);
+        }
+
+        // ============================================
+        // UTILITY
+        // ============================================
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
