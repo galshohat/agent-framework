@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocMind — AI Document Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #6366f1;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #ffffff;
+            --bg-alt: #f8fafc;
+            --bg-section: #f1f5f9;
+            --border: #e2e8f0;
+            --border-dark: #cbd5e1;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        @keyframes highlight {
+            0%, 100% { background: rgba(37, 99, 235, 0.1); }
+            50% { background: rgba(37, 99, 235, 0.25); }
+        }
+
+        @keyframes progress {
+            from { width: 0; }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-alt);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 40px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Upload Screen */
+        .upload-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 40px;
+            min-height: calc(100vh - 180px);
+        }
+
+        .upload-screen.hidden {
+            display: none;
+        }
+
+        .upload-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .upload-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .drop-zone {
+            width: 100%;
+            max-width: 600px;
+            padding: 60px 40px;
+            border: 2px dashed var(--border-dark);
+            border-radius: 16px;
+            background: var(--bg);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.03);
+        }
+
+        .drop-zone.dragover {
+            transform: scale(1.02);
+        }
+
+        .drop-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .drop-text {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .drop-hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .drop-formats {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .format-badge {
+            padding: 6px 12px;
+            background: var(--bg-section);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .sample-docs {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .sample-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .sample-list {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .sample-btn {
+            padding: 10px 20px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sample-btn:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        /* Analysis Screen */
+        .analysis-screen {
+            display: none;
+            padding: 30px 40px;
+        }
+
+        .analysis-screen.active {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Analysis Header */
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            padding: 24px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .doc-info h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .doc-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .doc-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .analysis-stats {
+            display: flex;
+            gap: 24px;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 12px 20px;
+            background: var(--bg-alt);
+            border-radius: 10px;
+            min-width: 100px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-value.danger { color: var(--danger); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-value.success { color: var(--success); }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        /* Main Analysis Grid */
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title-icon {
+            font-size: 1rem;
+        }
+
+        .panel-badge {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-weight: 500;
+        }
+
+        .panel-badge.success {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success);
+        }
+
+        .panel-badge.warning {
+            background: rgba(217, 119, 6, 0.1);
+            color: var(--warning);
+        }
+
+        .panel-badge.danger {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger);
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        /* Document Preview */
+        .document-preview {
+            position: relative;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Georgia', serif;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            color: var(--text);
+        }
+
+        .doc-paragraph {
+            margin-bottom: 16px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .doc-paragraph.highlighted {
+            animation: highlight 2s ease-in-out;
+        }
+
+        .doc-paragraph.risk {
+            background: rgba(220, 38, 38, 0.08);
+            border-left: 3px solid var(--danger);
+        }
+
+        .doc-paragraph.obligation {
+            background: rgba(37, 99, 235, 0.08);
+            border-left: 3px solid var(--primary);
+        }
+
+        .doc-paragraph.key-term {
+            background: rgba(217, 119, 6, 0.08);
+            border-left: 3px solid var(--warning);
+        }
+
+        .highlight-marker {
+            display: inline-block;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        .highlight-marker.risk {
+            background: var(--danger);
+            color: white;
+        }
+
+        .highlight-marker.obligation {
+            background: var(--primary);
+            color: white;
+        }
+
+        .highlight-marker.key-term {
+            background: var(--warning);
+            color: white;
+        }
+
+        /* Scanning Overlay */
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scan 2s linear infinite;
+            display: none;
+        }
+
+        .scan-overlay.active {
+            display: block;
+        }
+
+        /* Right Sidebar */
+        .analysis-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Timeline */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            opacity: 0.4;
+            transition: opacity 0.3s;
+        }
+
+        .timeline-item.active {
+            opacity: 1;
+        }
+
+        .timeline-item.completed {
+            opacity: 1;
+        }
+
+        .timeline-marker {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .timeline-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-section);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .timeline-item.active .timeline-dot {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+            animation: pulse 1.5s infinite;
+        }
+
+        .timeline-item.completed .timeline-dot {
+            border-color: var(--success);
+            background: var(--success);
+            color: white;
+        }
+
+        .timeline-line {
+            width: 2px;
+            flex: 1;
+            min-height: 20px;
+            background: var(--border);
+            margin: 4px 0;
+        }
+
+        .timeline-item.completed .timeline-line {
+            background: var(--success);
+        }
+
+        .timeline-content h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .timeline-content p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .timeline-time {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* Findings Cards */
+        .findings-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .finding-card {
+            padding: 14px;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .finding-card.risk {
+            border-left: 3px solid var(--danger);
+        }
+
+        .finding-card.obligation {
+            border-left: 3px solid var(--primary);
+        }
+
+        .finding-card.action {
+            border-left: 3px solid var(--success);
+        }
+
+        .finding-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .finding-icon {
+            font-size: 0.9rem;
+        }
+
+        .finding-type {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .finding-type.risk { color: var(--danger); }
+        .finding-type.obligation { color: var(--primary); }
+        .finding-type.action { color: var(--success); }
+
+        .finding-text {
+            font-size: 0.85rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        .finding-ref {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Summary Card */
+        .summary-card {
+            padding: 20px;
+        }
+
+        .summary-text {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+
+        .summary-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .summary-tag {
+            padding: 6px 12px;
+            background: var(--bg-section);
+            border-radius: 100px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            padding: 16px 20px;
+            background: var(--bg-alt);
+            border-top: 1px solid var(--border);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .progress-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .progress-value {
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            animation: progress 2s ease-out;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 32px;
+            border-top: 1px solid var(--border);
+            background: var(--bg);
+            margin-top: 40px;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .footer-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .footer-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer-text strong {
+            color: var(--text);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-alt); }
+        ::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header { padding: 12px 20px; }
+            .upload-screen { padding: 40px 20px; }
+            .analysis-screen { padding: 20px; }
+            .analysis-header { flex-direction: column; gap: 20px; }
+            .analysis-stats { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">📄</div>
+            <div>
+                <div class="logo-text">DocMind</div>
+                <div class="logo-subtitle">AI Document Analyzer</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn" onclick="resetDemo()">New Analysis</button>
+            <button class="btn btn-primary">Export Report</button>
+        </div>
+    </header>
+
+    <!-- Upload Screen -->
+    <section class="upload-screen" id="uploadScreen">
+        <h1 class="upload-title">Analyze Any Document with AI</h1>
+        <p class="upload-subtitle">Upload contracts, legal documents, or policies for instant AI-powered analysis</p>
+
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-icon">📁</div>
+            <div class="drop-text">Drag & drop your document here</div>
+            <div class="drop-hint">or click to browse files</div>
+            <div class="drop-formats">
+                <span class="format-badge">PDF</span>
+                <span class="format-badge">DOCX</span>
+                <span class="format-badge">TXT</span>
+            </div>
+        </div>
+
+        <div class="sample-docs">
+            <div class="sample-label">Or try a sample document:</div>
+            <div class="sample-list">
+                <button class="sample-btn" onclick="loadSampleDoc('nda')">
+                    📋 NDA Agreement
+                </button>
+                <button class="sample-btn" onclick="loadSampleDoc('service')">
+                    📝 Service Contract
+                </button>
+                <button class="sample-btn" onclick="loadSampleDoc('employment')">
+                    👔 Employment Contract
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Analysis Screen -->
+    <section class="analysis-screen" id="analysisScreen">
+        <!-- Analysis Header -->
+        <div class="analysis-header">
+            <div class="doc-info">
+                <h2>
+                    <span>📋</span>
+                    <span id="docTitle">Master Service Agreement</span>
+                </h2>
+                <div class="doc-meta">
+                    <span>📄 12 pages</span>
+                    <span>📅 Uploaded just now</span>
+                    <span>⚖️ Service Contract</span>
+                </div>
+            </div>
+            <div class="analysis-stats">
+                <div class="stat-box">
+                    <div class="stat-value danger" id="riskScore">—</div>
+                    <div class="stat-label">Risk Score</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="analysisTime">—</div>
+                    <div class="stat-label">Analysis Time</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value success" id="issuesFound">—</div>
+                    <div class="stat-label">Issues Found</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="analysis-grid">
+            <!-- Document Preview -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-title-icon">📄</span>
+                        Document Preview
+                    </div>
+                    <span class="panel-badge warning" id="highlightCount">0 highlights</span>
+                </div>
+                <div class="panel-content">
+                    <div class="document-preview" id="documentPreview">
+                        <div class="scan-overlay" id="scanOverlay"></div>
+                        <!-- Document content will be inserted here -->
+                    </div>
+                </div>
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-header">
+                        <span class="progress-label">Analyzing document...</span>
+                        <span class="progress-value" id="progressValue">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="analysis-sidebar">
+                <!-- AI Reasoning Timeline -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <span class="panel-title-icon">🧠</span>
+                            AI Reasoning Steps
+                        </div>
+                    </div>
+                    <div class="panel-content">
+                        <div class="timeline" id="timeline">
+                            <!-- Timeline items will be inserted -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="panel" id="summaryPanel" style="display: none;">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <span class="panel-title-icon">📝</span>
+                            Executive Summary
+                        </div>
+                    </div>
+                    <div class="panel-content summary-card">
+                        <div class="summary-text" id="summaryText">
+                            <!-- Summary will be inserted -->
+                        </div>
+                        <div class="summary-tags" id="summaryTags">
+                            <!-- Tags will be inserted -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Findings -->
+                <div class="panel" id="findingsPanel" style="display: none;">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <span class="panel-title-icon">🔍</span>
+                            Key Findings
+                        </div>
+                        <span class="panel-badge danger" id="findingsCount">0 items</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="findings-list" id="findingsList">
+                            <!-- Findings will be inserted -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-brand">
+            <div class="footer-logo">🔬</div>
+            <div class="footer-text">Powered by <strong>UBTECH AI Lab</strong></div>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+
+        const CONFIG = {
+            stepDelay: 1500,
+            highlightDelay: 800,
+            totalAnalysisTime: 8.2 // seconds (fake)
+        };
+
+        // ============================================
+        // SAMPLE DOCUMENT
+        // ============================================
+
+        const sampleDocument = {
+            title: "Master Service Agreement",
+            content: [
+                {
+                    text: "MASTER SERVICE AGREEMENT",
+                    type: "heading"
+                },
+                {
+                    text: "This Master Service Agreement (\"Agreement\") is entered into as of the Effective Date between TechCorp Inc., a Delaware corporation (\"Provider\"), and the undersigned client (\"Client\").",
+                    type: "normal"
+                },
+                {
+                    text: "1. TERM AND TERMINATION. This Agreement shall commence on the Effective Date and continue for an initial term of thirty-six (36) months. Either party may terminate this Agreement with ninety (90) days written notice. IMPORTANT: Early termination by Client shall result in payment of 100% of remaining contract value as a termination fee.",
+                    type: "risk",
+                    marker: "RISK"
+                },
+                {
+                    text: "2. SERVICES. Provider agrees to deliver the Services as described in Exhibit A, including software implementation, training, and ongoing support. Provider shall maintain 99.9% uptime availability.",
+                    type: "obligation",
+                    marker: "OBLIGATION"
+                },
+                {
+                    text: "3. PAYMENT TERMS. Client shall pay all invoices within thirty (30) days of receipt. Late payments shall incur interest at 1.5% per month or the maximum rate permitted by law.",
+                    type: "normal"
+                },
+                {
+                    text: "4. LIMITATION OF LIABILITY. IN NO EVENT SHALL PROVIDER'S TOTAL LIABILITY EXCEED THE FEES PAID BY CLIENT IN THE TWELVE (12) MONTHS PRIOR TO THE CLAIM. This limitation shall not apply to gross negligence or willful misconduct.",
+                    type: "key-term",
+                    marker: "KEY TERM"
+                },
+                {
+                    text: "5. INTELLECTUAL PROPERTY. All intellectual property created during the engagement shall be owned exclusively by Provider. Client receives a non-exclusive, non-transferable license to use deliverables.",
+                    type: "risk",
+                    marker: "RISK"
+                },
+                {
+                    text: "6. CONFIDENTIALITY. Both parties agree to maintain confidentiality of Confidential Information for a period of five (5) years following termination of this Agreement.",
+                    type: "obligation",
+                    marker: "OBLIGATION"
+                },
+                {
+                    text: "7. INDEMNIFICATION. Client agrees to indemnify, defend, and hold harmless Provider from any claims arising from Client's use of the Services or Client's breach of this Agreement.",
+                    type: "risk",
+                    marker: "RISK"
+                },
+                {
+                    text: "8. GOVERNING LAW. This Agreement shall be governed by the laws of the State of Delaware, without regard to conflicts of law principles. Any disputes shall be resolved through binding arbitration in Wilmington, Delaware.",
+                    type: "key-term",
+                    marker: "KEY TERM"
+                },
+                {
+                    text: "9. AUTO-RENEWAL. This Agreement shall automatically renew for successive one (1) year terms unless either party provides written notice of non-renewal at least sixty (60) days prior to the end of the then-current term.",
+                    type: "obligation",
+                    marker: "OBLIGATION"
+                }
+            ]
+        };
+
+        // ============================================
+        // ANALYSIS STEPS
+        // ============================================
+
+        const analysisSteps = [
+            { icon: "📥", title: "Document Ingestion", desc: "Parsing document structure..." },
+            { icon: "🔤", title: "Text Extraction", desc: "Extracting and normalizing text..." },
+            { icon: "🏷️", title: "Clause Classification", desc: "Identifying contract clauses..." },
+            { icon: "⚠️", title: "Risk Detection", desc: "Analyzing potential risks..." },
+            { icon: "📋", title: "Obligation Mapping", desc: "Extracting obligations..." },
+            { icon: "✅", title: "Generating Recommendations", desc: "Creating action items..." }
+        ];
+
+        // ============================================
+        // FINDINGS DATA
+        // ============================================
+
+        const findings = [
+            { type: "risk", icon: "⚠️", text: "100% early termination fee is unusually punitive and may be unenforceable.", ref: "Clause 1" },
+            { type: "risk", icon: "⚠️", text: "IP ownership clause transfers all created work to Provider — negotiate retention rights.", ref: "Clause 5" },
+            { type: "risk", icon: "⚠️", text: "Broad indemnification clause places significant liability on Client.", ref: "Clause 7" },
+            { type: "obligation", icon: "📋", text: "Provider must maintain 99.9% uptime — ensure SLA penalties are defined.", ref: "Clause 2" },
+            { type: "obligation", icon: "📋", text: "Confidentiality extends 5 years post-termination — standard for industry.", ref: "Clause 6" },
+            { type: "action", icon: "✓", text: "Recommend negotiating 30-day termination notice (vs 90 days).", ref: "Action Item" },
+            { type: "action", icon: "✓", text: "Add carve-out for Client pre-existing IP in Clause 5.", ref: "Action Item" }
+        ];
+
+        // ============================================
+        // STATE
+        // ============================================
+
+        let currentStep = 0;
+        let isAnalyzing = false;
+        let startTime = 0;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDropZone();
+        });
+
+        function setupDropZone() {
+            const dropZone = document.getElementById('dropZone');
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                startAnalysis();
+            });
+
+            dropZone.addEventListener('click', () => {
+                startAnalysis();
+            });
+        }
+
+        function loadSampleDoc(type) {
+            startAnalysis();
+        }
+
+        function resetDemo() {
+            document.getElementById('uploadScreen').classList.remove('hidden');
+            document.getElementById('analysisScreen').classList.remove('active');
+            currentStep = 0;
+            isAnalyzing = false;
+        }
+
+        // ============================================
+        // ANALYSIS FLOW
+        // ============================================
+
+        async function startAnalysis() {
+            if (isAnalyzing) return;
+            isAnalyzing = true;
+            startTime = Date.now();
+
+            // Switch screens
+            document.getElementById('uploadScreen').classList.add('hidden');
+            document.getElementById('analysisScreen').classList.add('active');
+
+            // Reset UI
+            resetAnalysisUI();
+
+            // Build timeline
+            buildTimeline();
+
+            // Load document content
+            loadDocumentContent();
+
+            // Start scanning animation
+            document.getElementById('scanOverlay').classList.add('active');
+
+            // Run analysis steps
+            await runAnalysisSteps();
+
+            // Complete analysis
+            completeAnalysis();
+        }
+
+        function resetAnalysisUI() {
+            document.getElementById('riskScore').textContent = '—';
+            document.getElementById('analysisTime').textContent = '—';
+            document.getElementById('issuesFound').textContent = '—';
+            document.getElementById('progressValue').textContent = '0%';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('highlightCount').textContent = '0 highlights';
+            document.getElementById('summaryPanel').style.display = 'none';
+            document.getElementById('findingsPanel').style.display = 'none';
+            document.getElementById('findingsList').innerHTML = '';
+        }
+
+        function buildTimeline() {
+            const timeline = document.getElementById('timeline');
+            timeline.innerHTML = '';
+
+            analysisSteps.forEach((step, index) => {
+                const isLast = index === analysisSteps.length - 1;
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+                item.id = `step-${index}`;
+                item.innerHTML = `
+                    <div class="timeline-marker">
+                        <div class="timeline-dot">${step.icon}</div>
+                        ${!isLast ? '<div class="timeline-line"></div>' : ''}
+                    </div>
+                    <div class="timeline-content">
+                        <h4>${step.title}</h4>
+                        <p>${step.desc}</p>
+                        <div class="timeline-time" id="time-${index}"></div>
+                    </div>
+                `;
+                timeline.appendChild(item);
+            });
+        }
+
+        function loadDocumentContent() {
+            const preview = document.getElementById('documentPreview');
+            preview.innerHTML = '<div class="scan-overlay" id="scanOverlay"></div>';
+
+            sampleDocument.content.forEach((para, index) => {
+                const p = document.createElement('div');
+                p.className = `doc-paragraph ${para.type || ''}`;
+                p.id = `para-${index}`;
+                
+                let markerHTML = '';
+                if (para.marker) {
+                    const markerClass = para.type;
+                    markerHTML = `<span class="highlight-marker ${markerClass}">${para.marker}</span>`;
+                }
+
+                if (para.type === 'heading') {
+                    p.innerHTML = `<strong>${para.text}</strong>`;
+                } else {
+                    p.innerHTML = para.text + markerHTML;
+                }
+
+                preview.appendChild(p);
+            });
+        }
+
+        async function runAnalysisSteps() {
+            for (let i = 0; i < analysisSteps.length; i++) {
+                currentStep = i;
+                
+                // Activate current step
+                const stepEl = document.getElementById(`step-${i}`);
+                stepEl.classList.add('active');
+
+                // Update progress
+                const progress = Math.round(((i + 1) / analysisSteps.length) * 100);
+                document.getElementById('progressValue').textContent = progress + '%';
+                document.getElementById('progressFill').style.width = progress + '%';
+
+                // Highlight relevant paragraphs during certain steps
+                if (i === 3) { // Risk detection
+                    highlightParagraphs('risk');
+                } else if (i === 4) { // Obligation mapping
+                    highlightParagraphs('obligation');
+                }
+
+                await sleep(CONFIG.stepDelay);
+
+                // Mark step as completed
+                stepEl.classList.remove('active');
+                stepEl.classList.add('completed');
+                
+                // Add completion time
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                document.getElementById(`time-${i}`).textContent = `Completed in ${elapsed}s`;
+            }
+        }
+
+        function highlightParagraphs(type) {
+            const paragraphs = document.querySelectorAll(`.doc-paragraph.${type}`);
+            paragraphs.forEach((p, i) => {
+                setTimeout(() => {
+                    p.classList.add('highlighted');
+                    updateHighlightCount();
+                }, i * CONFIG.highlightDelay);
+            });
+        }
+
+        function updateHighlightCount() {
+            const count = document.querySelectorAll('.doc-paragraph.highlighted').length;
+            document.getElementById('highlightCount').textContent = count + ' highlights';
+        }
+
+        function completeAnalysis() {
+            isAnalyzing = false;
+
+            // Remove scanning
+            document.getElementById('scanOverlay').classList.remove('active');
+
+            // Update stats
+            document.getElementById('riskScore').textContent = '72';
+            document.getElementById('riskScore').className = 'stat-value warning';
+            document.getElementById('analysisTime').textContent = CONFIG.totalAnalysisTime + 's';
+            document.getElementById('issuesFound').textContent = '7';
+
+            // Show summary
+            showSummary();
+
+            // Show findings
+            showFindings();
+
+            // Hide progress
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        function showSummary() {
+            const panel = document.getElementById('summaryPanel');
+            panel.style.display = 'block';
+
+            document.getElementById('summaryText').textContent = 
+                "This 36-month Master Service Agreement contains several concerning provisions. The early termination penalty (100%), one-sided IP ownership, and broad indemnification clauses require negotiation. Recommend legal review before signing.";
+
+            document.getElementById('summaryTags').innerHTML = `
+                <span class="summary-tag">Service Agreement</span>
+                <span class="summary-tag">36-Month Term</span>
+                <span class="summary-tag">Auto-Renewal</span>
+                <span class="summary-tag">Delaware Law</span>
+            `;
+        }
+
+        async function showFindings() {
+            const panel = document.getElementById('findingsPanel');
+            panel.style.display = 'block';
+
+            const list = document.getElementById('findingsList');
+            list.innerHTML = '';
+
+            document.getElementById('findingsCount').textContent = findings.length + ' items';
+
+            for (const finding of findings) {
+                const card = document.createElement('div');
+                card.className = `finding-card ${finding.type}`;
+                card.innerHTML = `
+                    <div class="finding-header">
+                        <span class="finding-icon">${finding.icon}</span>
+                        <span class="finding-type ${finding.type}">${finding.type.toUpperCase()}</span>
+                    </div>
+                    <div class="finding-text">${finding.text}</div>
+                    <div class="finding-ref">📎 ${finding.ref}</div>
+                `;
+                list.appendChild(card);
+                await sleep(200);
+            }
+        }
+
+        // ============================================
+        // UTILITY
+        // ============================================
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>
