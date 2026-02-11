@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOpsAgent — Autonomous Incident Handler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #5046e5;
+            --primary-light: #6366f1;
+            --primary-dark: #4338ca;
+            --success: #059669;
+            --success-light: #10b981;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --danger-light: #ef4444;
+            --bg: #f9fafb;
+            --bg-white: #ffffff;
+            --bg-muted: #f3f4f6;
+            --border: #e5e7eb;
+            --border-dark: #d1d5db;
+            --text: #111827;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+            --text-light: #9ca3af;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 32px;
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-item {
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-muted);
+            color: var(--text);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .incident-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+        }
+
+        .incident-badge.resolved {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+        }
+
+        .incident-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .incident-badge.resolved .incident-dot {
+            background: var(--success);
+            animation: none;
+        }
+
+        .incident-text {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--danger);
+        }
+
+        .incident-badge.resolved .incident-text {
+            color: var(--success);
+        }
+
+        /* Incident Banner */
+        .incident-banner {
+            background: #fef2f2;
+            border-bottom: 1px solid #fecaca;
+            padding: 12px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .incident-banner.resolved {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+        }
+
+        .banner-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .banner-severity {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: var(--danger);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .banner-severity.resolved {
+            background: var(--success);
+        }
+
+        .banner-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .banner-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .banner-id {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            padding: 4px 10px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 260px 1fr 320px;
+            gap: 20px;
+            padding: 20px 32px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title-icon {
+            font-size: 0.9rem;
+        }
+
+        .panel-status {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .panel-status.healthy {
+            background: #ecfdf5;
+            color: var(--success);
+        }
+
+        .panel-status.critical {
+            background: #fef2f2;
+            color: var(--danger);
+        }
+
+        .panel-content {
+            padding: 12px;
+        }
+
+        /* Infrastructure List */
+        .infra-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .infra-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-muted);
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        .infra-item.error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .infra-item.warning {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+        }
+
+        .infra-item.healthy {
+            background: var(--bg-muted);
+        }
+
+        .infra-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .infra-info {
+            flex: 1;
+        }
+
+        .infra-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .infra-meta {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .infra-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .infra-status.healthy { background: var(--success); }
+        .infra-status.error { background: var(--danger); animation: pulse 1s infinite; }
+        .infra-status.warning { background: var(--warning); }
+
+        /* Log Panel */
+        .log-panel {
+            display: flex;
+            flex-direction: column;
+            max-height: 600px;
+        }
+
+        .log-area {
+            flex: 1;
+            background: #1e1e1e;
+            padding: 16px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            line-height: 1.7;
+            max-height: 350px;
+        }
+
+        .log-line {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .log-time {
+            color: #6b7280;
+            flex-shrink: 0;
+        }
+
+        .log-level {
+            width: 48px;
+            text-align: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .log-level.info { color: #60a5fa; }
+        .log-level.warn { color: #fbbf24; }
+        .log-level.error { color: #f87171; }
+        .log-level.success { color: #34d399; }
+
+        .log-message {
+            color: #e5e7eb;
+        }
+
+        .log-message .highlight { color: #60a5fa; font-weight: 600; }
+        .log-message .error { color: #f87171; }
+        .log-message .success { color: #34d399; }
+        .log-message .warning { color: #fbbf24; }
+
+        /* Agent Section */
+        .agent-section {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-muted);
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .agent-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        .agent-info h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .agent-info span {
+            font-size: 0.75rem;
+            color: var(--success);
+        }
+
+        /* Steps */
+        .steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+
+        .step-item.active {
+            opacity: 1;
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .step-item.completed {
+            opacity: 1;
+            border-color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .step-number {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--bg-muted);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .step-item.active .step-number {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .step-item.completed .step-number {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .step-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .step-time {
+            font-size: 0.65rem;
+            color: var(--text-light);
+        }
+
+        /* Metrics Panel */
+        .metrics-panel .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .metric-card {
+            padding: 14px;
+            background: var(--bg-muted);
+            border-radius: 6px;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        /* Severity */
+        .severity-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .severity-badge {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .severity-badge.critical {
+            background: #fef2f2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+        }
+
+        .severity-badge.resolved {
+            background: #ecfdf5;
+            color: var(--success);
+            border: 1px solid #a7f3d0;
+        }
+
+        .severity-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .severity-bar {
+            display: flex;
+            gap: 3px;
+            margin-top: 10px;
+        }
+
+        .severity-segment {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .severity-segment.active.low { background: var(--success); }
+        .severity-segment.active.medium { background: var(--warning); }
+        .severity-segment.active.high { background: #f97316; }
+        .severity-segment.active.critical { background: var(--danger); }
+
+        /* Confidence */
+        .confidence-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .confidence-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .confidence-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        /* Root Cause Card */
+        .rootcause-card {
+            display: none;
+        }
+
+        .rootcause-card.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .rootcause-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .rootcause-header span:first-child {
+            font-size: 0.9rem;
+        }
+
+        .rootcause-header span:last-child {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .rootcause-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            padding: 10px 12px;
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            border-left: 3px solid var(--primary);
+        }
+
+        /* Fix Card */
+        .fix-card {
+            display: none;
+        }
+
+        .fix-card.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .fix-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .fix-header span {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        .fix-command {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.75rem;
+            padding: 10px 12px;
+            background: #1e1e1e;
+            border-radius: 6px;
+            color: #34d399;
+            margin-bottom: 12px;
+            overflow-x: auto;
+        }
+
+        .fix-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .fix-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+            border: none;
+        }
+
+        .fix-btn.primary {
+            background: var(--success);
+            color: white;
+        }
+
+        .fix-btn.primary:hover {
+            background: #047857;
+        }
+
+        .fix-btn.secondary {
+            background: var(--bg-white);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .fix-btn.secondary:hover {
+            background: var(--bg-muted);
+        }
+
+        /* Ticket Card */
+        .ticket-card {
+            display: none;
+        }
+
+        .ticket-card.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .ticket-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .ticket-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .ticket-info h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .ticket-id {
+            font-size: 0.75rem;
+            color: var(--primary);
+        }
+
+        .ticket-details {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            padding: 10px 12px;
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .ticket-details span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 24px 32px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-white);
+            text-align: center;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .footer-logo {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: white;
+        }
+
+        .footer-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .footer-text strong {
+            color: var(--text);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🤖</div>
+            <div class="logo-text">DevOpsAgent</div>
+        </div>
+        <nav class="header-nav">
+            <a href="#" class="nav-item active">Incidents</a>
+            <a href="#" class="nav-item">Infrastructure</a>
+            <a href="#" class="nav-item">Logs</a>
+            <a href="#" class="nav-item">Alerts</a>
+        </nav>
+        <div class="header-right">
+            <div class="incident-badge" id="incidentBadge">
+                <span class="incident-dot"></span>
+                <span class="incident-text" id="incidentText">Active Incident</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Incident Banner -->
+    <div class="incident-banner" id="incidentBanner">
+        <div class="banner-left">
+            <div class="banner-severity" id="bannerSeverity">P1 CRITICAL</div>
+            <div class="banner-title">Payment Service Outage</div>
+            <div class="banner-time">Started 3 minutes ago</div>
+        </div>
+        <div class="banner-id">#INC-2024-4872</div>
+    </div>
+
+    <!-- Main Layout -->
+    <main class="main-container">
+        <!-- Infrastructure Panel -->
+        <aside class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="panel-title-icon">🖥️</span>
+                    Infrastructure
+                </div>
+                <span class="panel-status critical" id="infraStatus">1 Critical</span>
+            </div>
+            <div class="panel-content">
+                <div class="infra-list" id="infraList">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Log Panel -->
+        <section class="panel log-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="panel-title-icon">📋</span>
+                    System Logs
+                </div>
+                <span class="panel-status healthy">Live</span>
+            </div>
+            
+            <div class="log-area" id="logArea">
+                <!-- Logs populated by JS -->
+            </div>
+
+            <div class="agent-section">
+                <div class="agent-header">
+                    <div class="agent-avatar">🤖</div>
+                    <div class="agent-info">
+                        <h4>DevOpsAgent</h4>
+                        <span id="agentStatus">Analyzing incident...</span>
+                    </div>
+                </div>
+                <div class="steps-list" id="stepsList">
+                    <!-- Steps populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Metrics Panel -->
+        <aside class="panel metrics-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="panel-title-icon">📊</span>
+                    Incident Details
+                </div>
+            </div>
+            <div class="panel-content">
+                <!-- Severity -->
+                <div class="metric-card">
+                    <div class="metric-label">Severity Level</div>
+                    <div class="severity-row">
+                        <div class="severity-badge critical" id="severityBadge">P1</div>
+                        <div class="severity-label" id="severityLabel">Critical Impact</div>
+                    </div>
+                    <div class="severity-bar" id="severityBar">
+                        <div class="severity-segment active critical"></div>
+                        <div class="severity-segment active critical"></div>
+                        <div class="severity-segment active critical"></div>
+                        <div class="severity-segment active critical"></div>
+                    </div>
+                </div>
+
+                <!-- Confidence -->
+                <div class="metric-card">
+                    <div class="metric-label">Fix Confidence</div>
+                    <div class="confidence-row">
+                        <div class="confidence-value" id="confidenceValue">—</div>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Root Cause -->
+                <div class="metric-card rootcause-card" id="rootcauseCard">
+                    <div class="rootcause-header">
+                        <span>🔍</span>
+                        <span>Root Cause Identified</span>
+                    </div>
+                    <div class="rootcause-text" id="rootcauseText">
+                        Memory leak in payment-service pod causing OOM kills. Connection pool exhaustion detected.
+                    </div>
+                </div>
+
+                <!-- Fix -->
+                <div class="metric-card fix-card" id="fixCard">
+                    <div class="fix-header">
+                        <span>✅ Recommended Fix</span>
+                    </div>
+                    <div class="fix-command" id="fixCommand">
+                        kubectl rollout restart deployment/payment-service -n production
+                    </div>
+                    <div class="fix-actions">
+                        <button class="fix-btn primary" onclick="applyFix()">Apply Fix</button>
+                        <button class="fix-btn secondary">Review</button>
+                    </div>
+                </div>
+
+                <!-- Ticket -->
+                <div class="metric-card ticket-card" id="ticketCard">
+                    <div class="ticket-header">
+                        <div class="ticket-icon">🎫</div>
+                        <div class="ticket-info">
+                            <h4>Incident Ticket</h4>
+                            <span class="ticket-id">#INC-2024-4872</span>
+                        </div>
+                    </div>
+                    <div class="ticket-details">
+                        <span>📋 Status: Auto-Resolved</span>
+                        <span>👤 Assigned: DevOpsAgent</span>
+                        <span>⏱️ Time to Resolve: 2m 34s</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-brand">
+            <div class="footer-logo">🔬</div>
+            <div class="footer-text">Powered by <strong>UBTECH AI Lab</strong></div>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+
+        const CONFIG = {
+            logInterval: 350,
+            stepDelay: 2200,
+            autoStart: true
+        };
+
+        // ============================================
+        // INFRASTRUCTURE DATA
+        // ============================================
+
+        const infraNodes = [
+            { id: 'lb', icon: '🌐', name: 'Load Balancer', meta: 'nginx-ingress', status: 'healthy' },
+            { id: 'api', icon: '⚡', name: 'API Gateway', meta: 'kong-gateway', status: 'healthy' },
+            { id: 'payment', icon: '💳', name: 'Payment Service', meta: 'payment-service-v2', status: 'error' },
+            { id: 'db', icon: '🗄️', name: 'Database', meta: 'postgres-primary', status: 'warning' },
+            { id: 'cache', icon: '💾', name: 'Redis Cache', meta: 'redis-cluster', status: 'healthy' },
+            { id: 'queue', icon: '📬', name: 'Message Queue', meta: 'rabbitmq', status: 'healthy' }
+        ];
+
+        // ============================================
+        // LOGS
+        // ============================================
+
+        const initialLogs = [
+            { level: 'error', message: '[payment-service] <span class="error">OOMKilled</span> - Container exceeded memory limit' },
+            { level: 'error', message: '[payment-service] <span class="error">CrashLoopBackOff</span> - Pod restarting' },
+            { level: 'warn', message: '[postgres] Connection pool exhausted - 100/100 connections' },
+            { level: 'error', message: '[api-gateway] <span class="error">502 Bad Gateway</span> - Upstream unreachable' },
+            { level: 'info', message: '[alertmanager] <span class="highlight">P1 Alert triggered</span> - payment_service_down' }
+        ];
+
+        const analysisLogs = [
+            { level: 'info', message: '[devops-agent] <span class="highlight">Incident detected</span> - Starting analysis...' },
+            { level: 'info', message: '[devops-agent] Reading pod logs for <span class="highlight">payment-service</span>...' },
+            { level: 'info', message: '[devops-agent] Analyzing memory metrics - Last 30 minutes...' },
+            { level: 'warn', message: '[devops-agent] <span class="warning">Anomaly detected</span>: Memory spike at 14:32:17 UTC' },
+            { level: 'info', message: '[devops-agent] Correlating with deployment events...' },
+            { level: 'info', message: '[devops-agent] Root cause: <span class="highlight">Memory leak in v2.4.1</span>' },
+            { level: 'info', message: '[devops-agent] Generating fix recommendation...' },
+            { level: 'success', message: '[devops-agent] <span class="success">Fix ready</span> - Rollout restart recommended' }
+        ];
+
+        const fixLogs = [
+            { level: 'info', message: '[devops-agent] <span class="highlight">Applying fix</span>...' },
+            { level: 'info', message: '[kubernetes] Rolling update initiated for payment-service' },
+            { level: 'info', message: '[kubernetes] Pod payment-service-x2kj1 terminating...' },
+            { level: 'info', message: '[kubernetes] Pod payment-service-m9p2q starting...' },
+            { level: 'success', message: '[kubernetes] <span class="success">Rollout complete</span> - All replicas ready' },
+            { level: 'success', message: '[devops-agent] <span class="success">Incident resolved</span> - Creating ticket...' }
+        ];
+
+        // ============================================
+        // STEPS
+        // ============================================
+
+        const steps = [
+            { title: 'Reading Logs', desc: 'Collecting system logs...' },
+            { title: 'Identifying Anomaly', desc: 'Pattern detection...' },
+            { title: 'Root Cause Analysis', desc: 'Correlating events...' },
+            { title: 'Suggested Fix', desc: 'Generating solution...' },
+            { title: 'Creating Ticket', desc: 'Documenting incident...' }
+        ];
+
+        // ============================================
+        // STATE
+        // ============================================
+
+        let currentStep = -1;
+        let isRunning = false;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initInfraList();
+            initSteps();
+
+            if (CONFIG.autoStart) {
+                setTimeout(startIncidentFlow, 1000);
+            }
+        });
+
+        function initInfraList() {
+            const list = document.getElementById('infraList');
+            list.innerHTML = '';
+
+            infraNodes.forEach(node => {
+                const div = document.createElement('div');
+                div.className = `infra-item ${node.status}`;
+                div.id = `infra-${node.id}`;
+                div.innerHTML = `
+                    <div class="infra-icon">${node.icon}</div>
+                    <div class="infra-info">
+                        <div class="infra-name">${node.name}</div>
+                        <div class="infra-meta">${node.meta}</div>
+                    </div>
+                    <div class="infra-status ${node.status}"></div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function initSteps() {
+            const list = document.getElementById('stepsList');
+            list.innerHTML = '';
+
+            steps.forEach((step, index) => {
+                const div = document.createElement('div');
+                div.className = 'step-item';
+                div.id = `step-${index}`;
+                div.innerHTML = `
+                    <div class="step-number">${index + 1}</div>
+                    <div class="step-content">
+                        <div class="step-title">${step.title}</div>
+                        <div class="step-desc">${step.desc}</div>
+                    </div>
+                    <div class="step-time" id="step-time-${index}"></div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // ============================================
+        // INCIDENT FLOW
+        // ============================================
+
+        async function startIncidentFlow() {
+            if (isRunning) return;
+            isRunning = true;
+
+            await showInitialLogs();
+
+            // Step 1: Reading Logs
+            await activateStep(0);
+            await addLogs(analysisLogs.slice(0, 2));
+
+            // Step 2: Identifying Anomaly
+            await activateStep(1);
+            await addLogs(analysisLogs.slice(2, 4));
+            updateConfidence(45);
+
+            // Step 3: Root Cause Analysis
+            await activateStep(2);
+            await addLogs(analysisLogs.slice(4, 6));
+            updateConfidence(78);
+            showRootCause();
+
+            // Step 4: Suggested Fix
+            await activateStep(3);
+            await addLogs(analysisLogs.slice(6, 8));
+            updateConfidence(94);
+            showSuggestedFix();
+
+            document.getElementById('agentStatus').textContent = 'Fix ready - awaiting approval...';
+        }
+
+        async function showInitialLogs() {
+            const logArea = document.getElementById('logArea');
+            logArea.innerHTML = '';
+
+            for (const log of initialLogs) {
+                addLogLine(log);
+                await sleep(CONFIG.logInterval);
+            }
+        }
+
+        async function addLogs(logs) {
+            for (const log of logs) {
+                addLogLine(log);
+                await sleep(CONFIG.logInterval);
+            }
+        }
+
+        function addLogLine(log) {
+            const logArea = document.getElementById('logArea');
+            const now = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            line.innerHTML = `
+                <span class="log-time">${now}</span>
+                <span class="log-level ${log.level}">${log.level.toUpperCase()}</span>
+                <span class="log-message">${log.message}</span>
+            `;
+            logArea.appendChild(line);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        async function activateStep(index) {
+            if (currentStep >= 0) {
+                const prev = document.getElementById(`step-${currentStep}`);
+                prev.classList.remove('active');
+                prev.classList.add('completed');
+                prev.querySelector('.step-number').textContent = '✓';
+            }
+
+            currentStep = index;
+
+            const step = document.getElementById(`step-${index}`);
+            step.classList.add('active');
+
+            document.getElementById('agentStatus').textContent = steps[index].title + '...';
+
+            await sleep(CONFIG.stepDelay);
+
+            document.getElementById(`step-time-${index}`).textContent = 
+                new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
+
+        function updateConfidence(value) {
+            document.getElementById('confidenceValue').textContent = value + '%';
+            document.getElementById('confidenceFill').style.width = value + '%';
+        }
+
+        function showRootCause() {
+            document.getElementById('rootcauseCard').classList.add('show');
+        }
+
+        function showSuggestedFix() {
+            document.getElementById('fixCard').classList.add('show');
+        }
+
+        async function applyFix() {
+            document.querySelector('.fix-actions').style.display = 'none';
+
+            await activateStep(4);
+
+            for (const log of fixLogs) {
+                addLogLine(log);
+                await sleep(CONFIG.logInterval);
+            }
+
+            // Complete last step
+            const lastStep = document.getElementById('step-4');
+            lastStep.classList.remove('active');
+            lastStep.classList.add('completed');
+            lastStep.querySelector('.step-number').textContent = '✓';
+            document.getElementById('step-time-4').textContent = 
+                new Date().toLocaleTimeString('en-US', { hour12: false });
+
+            updateConfidence(100);
+
+            // Update severity
+            document.getElementById('severityBadge').textContent = 'Resolved';
+            document.getElementById('severityBadge').classList.remove('critical');
+            document.getElementById('severityBadge').classList.add('resolved');
+            document.getElementById('severityLabel').textContent = 'Incident Resolved';
+
+            document.querySelectorAll('.severity-segment').forEach(seg => {
+                seg.classList.remove('active', 'critical');
+            });
+            document.querySelector('.severity-segment').classList.add('active', 'low');
+
+            // Update banner
+            document.getElementById('incidentBanner').classList.add('resolved');
+            document.getElementById('bannerSeverity').textContent = 'RESOLVED';
+            document.getElementById('bannerSeverity').classList.add('resolved');
+
+            // Update badge
+            document.getElementById('incidentBadge').classList.add('resolved');
+            document.getElementById('incidentText').textContent = 'Resolved';
+
+            // Update infrastructure
+            const paymentNode = document.getElementById('infra-payment');
+            paymentNode.classList.remove('error');
+            paymentNode.classList.add('healthy');
+            paymentNode.querySelector('.infra-status').classList.remove('error');
+            paymentNode.querySelector('.infra-status').classList.add('healthy');
+
+            const dbNode = document.getElementById('infra-db');
+            dbNode.classList.remove('warning');
+            dbNode.classList.add('healthy');
+            dbNode.querySelector('.infra-status').classList.remove('warning');
+            dbNode.querySelector('.infra-status').classList.add('healthy');
+
+            document.getElementById('infraStatus').textContent = 'All Healthy';
+            document.getElementById('infraStatus').classList.remove('critical');
+            document.getElementById('infraStatus').classList.add('healthy');
+
+            // Show ticket
+            document.getElementById('ticketCard').classList.add('show');
+
+            document.getElementById('agentStatus').textContent = 'Incident resolved automatically';
+
+            isRunning = false;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>

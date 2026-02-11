@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusinessBrain — AI Executive Decision Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #7c3aed;
+            --primary-light: #8b5cf6;
+            --primary-dark: #6d28d9;
+            --gold: #d4a853;
+            --gold-light: #e8c87a;
+            --gold-dark: #b8923d;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #0f0f12;
+            --bg-card: #18181b;
+            --bg-elevated: #1f1f23;
+            --bg-input: #27272a;
+            --border: #2d2d32;
+            --border-light: #3f3f46;
+            --text: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        @keyframes chartDraw {
+            from { stroke-dashoffset: 1000; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(212, 168, 83, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(212, 168, 83, 0.4); }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 40px;
+            background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg) 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--gold), var(--primary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .logo-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--gold));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .user-details h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .user-details span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+            padding: 24px 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* KPI Row */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+            grid-column: 1 / -1;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gold), var(--primary));
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .kpi-change {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .kpi-change.positive {
+            color: var(--success);
+        }
+
+        .kpi-change.negative {
+            color: var(--danger);
+        }
+
+        .kpi-icon {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 1.5rem;
+            opacity: 0.3;
+        }
+
+        /* Question Input */
+        .question-section {
+            grid-column: 1 / -1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .question-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .question-input-container {
+            display: flex;
+            gap: 12px;
+        }
+
+        .question-input {
+            flex: 1;
+            padding: 16px 20px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            color: var(--text);
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .question-input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.1);
+        }
+
+        .question-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .ask-btn {
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--bg);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ask-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(212, 168, 83, 0.3);
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title-icon {
+            color: var(--gold);
+        }
+
+        .panel-badge {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-weight: 500;
+            background: rgba(212, 168, 83, 0.15);
+            color: var(--gold);
+        }
+
+        .panel-content {
+            padding: 20px;
+        }
+
+        /* Chart Area */
+        .chart-container {
+            position: relative;
+            height: 280px;
+            margin-bottom: 20px;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.revenue { background: var(--gold); }
+        .legend-dot.costs { background: var(--primary); }
+        .legend-dot.profit { background: var(--success); }
+
+        /* Insight Cards */
+        .insights-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .insight-card {
+            padding: 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            animation: slideUp 0.4s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .insight-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--insight-color);
+        }
+
+        .insight-card.correlation { --insight-color: var(--primary); }
+        .insight-card.trend { --insight-color: var(--warning); }
+        .insight-card.insight { --insight-color: var(--gold); }
+        .insight-card.recommendation { --insight-color: var(--success); }
+
+        .insight-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .insight-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            background: var(--bg-card);
+        }
+
+        .insight-type {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--insight-color);
+        }
+
+        .insight-text {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .insight-metric {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(212, 168, 83, 0.1);
+            border-radius: 4px;
+            font-weight: 600;
+            color: var(--gold);
+        }
+
+        /* Right Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* AI Analysis Panel */
+        .analysis-panel .panel-content {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .analysis-step {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            opacity: 0.4;
+            transition: all 0.3s;
+        }
+
+        .analysis-step.active {
+            opacity: 1;
+            background: rgba(212, 168, 83, 0.05);
+            border: 1px solid var(--gold);
+        }
+
+        .analysis-step.completed {
+            opacity: 1;
+        }
+
+        .step-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            background: var(--bg-card);
+            flex-shrink: 0;
+        }
+
+        .analysis-step.active .step-icon {
+            animation: pulse 1.5s infinite;
+        }
+
+        .analysis-step.completed .step-icon {
+            background: var(--success);
+        }
+
+        .step-content h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .step-content p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Recommendations Panel */
+        .recommendation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .recommendation-item {
+            display: flex;
+            gap: 12px;
+            padding: 14px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .rec-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--gold), var(--primary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .rec-content {
+            flex: 1;
+        }
+
+        .rec-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .rec-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .rec-impact {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 8px;
+            padding: 4px 10px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        /* Growth Indicators */
+        .growth-panel .panel-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .growth-item {
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .growth-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .growth-value.positive { color: var(--success); }
+        .growth-value.negative { color: var(--danger); }
+        .growth-value.neutral { color: var(--warning); }
+
+        .growth-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--gold);
+            border-radius: 50%;
+            animation: pulse 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        .typing-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Answer Card */
+        .answer-card {
+            display: none;
+            padding: 24px;
+            background: linear-gradient(135deg, rgba(212, 168, 83, 0.1), rgba(124, 58, 237, 0.1));
+            border: 1px solid var(--gold);
+            border-radius: 12px;
+            margin-top: 20px;
+            animation: glow 3s infinite;
+        }
+
+        .answer-card.show {
+            display: block;
+            animation: slideUp 0.5s ease-out, glow 3s infinite;
+        }
+
+        .answer-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .answer-avatar {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--gold), var(--primary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .answer-label h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gold);
+        }
+
+        .answer-label span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .answer-text {
+            font-size: 1rem;
+            color: var(--text);
+            line-height: 1.8;
+        }
+
+        .answer-text strong {
+            color: var(--gold);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 32px 40px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-card);
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .footer-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--gold), var(--primary));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .footer-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer-text strong {
+            color: var(--text);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+            .kpi-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header { padding: 12px 20px; }
+            .kpi-row { grid-template-columns: 1fr; }
+            .question-input-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">🧠</div>
+            <div>
+                <div class="logo-text">BusinessBrain</div>
+                <div class="logo-subtitle">AI Executive Decision Engine</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <div class="user-avatar">👤</div>
+                <div class="user-details">
+                    <h4>Sarah Chen</h4>
+                    <span>Chief Executive Officer</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- KPI Row -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Revenue</div>
+                <div class="kpi-value">$4.2M</div>
+                <div class="kpi-change negative">
+                    <span>↓</span> 12% vs last month
+                </div>
+                <div class="kpi-icon">💰</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Active Customers</div>
+                <div class="kpi-value">12,847</div>
+                <div class="kpi-change positive">
+                    <span>↑</span> 8% vs last month
+                </div>
+                <div class="kpi-icon">👥</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Conversion Rate</div>
+                <div class="kpi-value">3.2%</div>
+                <div class="kpi-change negative">
+                    <span>↓</span> 0.8% vs last month
+                </div>
+                <div class="kpi-icon">📊</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Order Value</div>
+                <div class="kpi-value">$327</div>
+                <div class="kpi-change negative">
+                    <span>↓</span> 15% vs last month
+                </div>
+                <div class="kpi-icon">🛒</div>
+            </div>
+        </div>
+
+        <!-- Question Input -->
+        <section class="question-section">
+            <div class="question-label">
+                <span>🎯</span>
+                Ask your AI advisor a strategic question
+            </div>
+            <div class="question-input-container">
+                <input type="text" class="question-input" id="questionInput" 
+                    placeholder="e.g., Why did revenue drop last month?"
+                    value="Why did revenue drop last month?">
+                <button class="ask-btn" onclick="startAnalysis()">
+                    <span>✨</span> Analyze
+                </button>
+            </div>
+        </section>
+
+        <!-- Left Column - Charts and Insights -->
+        <div class="left-column">
+            <!-- Chart Panel -->
+            <div class="panel" style="margin-bottom: 20px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-title-icon">📈</span>
+                        Revenue Trend (Last 6 Months)
+                    </div>
+                    <span class="panel-badge">Live Data</span>
+                </div>
+                <div class="panel-content">
+                    <div class="chart-container">
+                        <canvas id="chartCanvas" class="chart-canvas"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-dot revenue"></div>
+                            <span>Revenue</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot costs"></div>
+                            <span>Costs</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot profit"></div>
+                            <span>Profit</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-title-icon">💡</span>
+                        AI-Generated Insights
+                    </div>
+                    <span class="panel-badge" id="insightCount">0 insights</span>
+                </div>
+                <div class="panel-content">
+                    <div class="insights-list" id="insightsList">
+                        <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <span class="typing-text">Analyzing your data...</span>
+                        </div>
+                        <!-- Insights will be added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Answer Card -->
+            <div class="answer-card" id="answerCard">
+                <div class="answer-header">
+                    <div class="answer-avatar">🧠</div>
+                    <div class="answer-label">
+                        <h4>BusinessBrain Analysis</h4>
+                        <span>AI-Powered Executive Insight</span>
+                    </div>
+                </div>
+                <div class="answer-text" id="answerText">
+                    <!-- Answer will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <aside class="sidebar">
+            <!-- Analysis Steps -->
+            <div class="panel analysis-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-title-icon">🔬</span>
+                        Analysis Process
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="analysisSteps">
+                        <!-- Steps will be added by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Growth Indicators -->
+            <div class="panel growth-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-title-icon">📊</span>
+                        Key Metrics Change
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="growth-item">
+                        <div class="growth-value negative">-12%</div>
+                        <div class="growth-label">Revenue</div>
+                    </div>
+                    <div class="growth-item">
+                        <div class="growth-value positive">+8%</div>
+                        <div class="growth-label">Customers</div>
+                    </div>
+                    <div class="growth-item">
+                        <div class="growth-value negative">-15%</div>
+                        <div class="growth-label">Avg Order</div>
+                    </div>
+                    <div class="growth-item">
+                        <div class="growth-value neutral">+2%</div>
+                        <div class="growth-label">Traffic</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span class="panel-title-icon">✅</span>
+                        Recommendations
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="recommendation-list" id="recommendationList">
+                        <!-- Recommendations will be added here -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-brand">
+            <div class="footer-logo">🔬</div>
+            <div class="footer-text">Powered by <strong>UBTECH AI Lab</strong></div>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+
+        const CONFIG = {
+            stepDelay: 1500,
+            insightDelay: 800,
+            autoStart: true
+        };
+
+        // ============================================
+        // DATA
+        // ============================================
+
+        const chartData = {
+            labels: ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'],
+            revenue: [5.2, 5.8, 5.5, 5.1, 4.8, 4.2],
+            costs: [2.8, 3.0, 2.9, 2.8, 2.9, 2.7],
+            profit: [2.4, 2.8, 2.6, 2.3, 1.9, 1.5]
+        };
+
+        const analysisSteps = [
+            { icon: '📊', title: 'Data Correlation', desc: 'Cross-referencing 847 data points...' },
+            { icon: '📈', title: 'Trend Detection', desc: 'Analyzing temporal patterns...' },
+            { icon: '💡', title: 'Insight Generation', desc: 'Identifying root causes...' },
+            { icon: '✅', title: 'Recommendations', desc: 'Generating action items...' }
+        ];
+
+        const insights = [
+            {
+                type: 'correlation',
+                icon: '🔗',
+                text: 'Strong correlation detected between <span class="insight-metric">-15% AOV drop</span> and the January 15th pricing change. Price increase of 12% led to cart abandonment spike.'
+            },
+            {
+                type: 'trend',
+                icon: '📉',
+                text: 'Revenue decline accelerated in the last 2 weeks of January. <span class="insight-metric">78% of lost revenue</span> came from the Enterprise segment.'
+            },
+            {
+                type: 'insight',
+                icon: '💡',
+                text: 'Competitor XYZ launched a similar product at 20% lower price on January 10th. Market share analysis shows <span class="insight-metric">23% customer migration</span>.'
+            },
+            {
+                type: 'recommendation',
+                icon: '✅',
+                text: 'Primary root cause: Pricing mismatch with market. <span class="insight-metric">Recommended action:</span> Implement tiered pricing strategy for Enterprise segment.'
+            }
+        ];
+
+        const recommendations = [
+            {
+                icon: '💰',
+                title: 'Adjust Enterprise Pricing',
+                desc: 'Implement tiered pricing with volume discounts to recapture Enterprise customers.',
+                impact: '+$320K/month potential'
+            },
+            {
+                icon: '🎯',
+                title: 'Win-Back Campaign',
+                desc: 'Launch targeted campaign for churned Enterprise accounts with 15% discount offer.',
+                impact: '+180 customers recoverable'
+            },
+            {
+                icon: '📊',
+                title: 'Competitive Analysis',
+                desc: 'Deep-dive into XYZ\'s offering to identify differentiation opportunities.',
+                impact: 'Strategic priority'
+            }
+        ];
+
+        const finalAnswer = `
+            The <strong>12% revenue decline</strong> in January was primarily caused by three interconnected factors:
+            <br><br>
+            <strong>1. Pricing Misalignment:</strong> The January 15th price increase (12%) triggered a 23% spike in cart abandonment, particularly in the Enterprise segment where price sensitivity is higher.
+            <br><br>
+            <strong>2. Competitive Pressure:</strong> Competitor XYZ's product launch on January 10th at 20% lower price point captured approximately 23% of your Enterprise customer base.
+            <br><br>
+            <strong>3. Seasonal Effect:</strong> Post-holiday budget tightening amplified price sensitivity across all segments.
+            <br><br>
+            <strong>Recommended Strategy:</strong> Implement a tiered pricing model with volume discounts for Enterprise clients. This approach has a projected <strong>78% probability of recovering $320K+/month</strong> within 90 days based on historical response patterns.
+        `;
+
+        // ============================================
+        // STATE
+        // ============================================
+
+        let isAnalyzing = false;
+        let currentStep = -1;
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            drawChart();
+            initAnalysisSteps();
+
+            if (CONFIG.autoStart) {
+                setTimeout(startAnalysis, 1500);
+            }
+        });
+
+        function initAnalysisSteps() {
+            const container = document.getElementById('analysisSteps');
+            container.innerHTML = '';
+
+            analysisSteps.forEach((step, index) => {
+                const div = document.createElement('div');
+                div.className = 'analysis-step';
+                div.id = `analysis-step-${index}`;
+                div.innerHTML = `
+                    <div class="step-icon">${step.icon}</div>
+                    <div class="step-content">
+                        <h4>${step.title}</h4>
+                        <p>${step.desc}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // ============================================
+        // CHART DRAWING
+        // ============================================
+
+        function drawChart() {
+            const canvas = document.getElementById('chartCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            const padding = 40;
+            const chartWidth = width - padding * 2;
+            const chartHeight = height - padding * 2;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw grid lines
+            ctx.strokeStyle = '#2d2d32';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (chartHeight / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+            }
+
+            // Draw Y-axis labels
+            ctx.fillStyle = '#71717a';
+            ctx.font = '11px -apple-system, sans-serif';
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 5; i++) {
+                const value = 6 - i;
+                const y = padding + (chartHeight / 5) * i;
+                ctx.fillText(`$${value}M`, padding - 10, y + 4);
+            }
+
+            // Draw X-axis labels
+            ctx.textAlign = 'center';
+            chartData.labels.forEach((label, index) => {
+                const x = padding + (chartWidth / (chartData.labels.length - 1)) * index;
+                ctx.fillText(label, x, height - 15);
+            });
+
+            // Helper function to draw line
+            function drawLine(data, color, offset = 0) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+
+                data.forEach((value, index) => {
+                    const x = padding + (chartWidth / (data.length - 1)) * index;
+                    const y = padding + chartHeight - (value / 6) * chartHeight;
+
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+
+                ctx.stroke();
+
+                // Draw points
+                data.forEach((value, index) => {
+                    const x = padding + (chartWidth / (data.length - 1)) * index;
+                    const y = padding + chartHeight - (value / 6) * chartHeight;
+
+                    ctx.fillStyle = '#0f0f12';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            // Draw lines
+            drawLine(chartData.profit, '#10b981');
+            drawLine(chartData.costs, '#7c3aed');
+            drawLine(chartData.revenue, '#d4a853');
+
+            // Highlight last month drop
+            const lastIndex = chartData.revenue.length - 1;
+            const lastX = padding + (chartWidth / (chartData.revenue.length - 1)) * lastIndex;
+            const lastY = padding + chartHeight - (chartData.revenue[lastIndex] / 6) * chartHeight;
+
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 15, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#ef4444';
+            ctx.font = 'bold 10px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('-12%', lastX, lastY - 22);
+        }
+
+        // ============================================
+        // ANALYSIS FLOW
+        // ============================================
+
+        async function startAnalysis() {
+            if (isAnalyzing) return;
+            isAnalyzing = true;
+
+            // Reset UI
+            document.getElementById('insightsList').innerHTML = '';
+            document.getElementById('recommendationList').innerHTML = '';
+            document.getElementById('answerCard').classList.remove('show');
+            document.getElementById('insightCount').textContent = '0 insights';
+            initAnalysisSteps();
+
+            // Show typing indicator
+            const typing = document.createElement('div');
+            typing.className = 'typing-indicator';
+            typing.id = 'typingIndicator';
+            typing.innerHTML = `
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span class="typing-text">Analyzing your data...</span>
+            `;
+            document.getElementById('insightsList').appendChild(typing);
+
+            // Run analysis steps
+            for (let i = 0; i < analysisSteps.length; i++) {
+                await activateStep(i);
+
+                // Add insight after each step
+                if (i < insights.length) {
+                    await addInsight(insights[i], i);
+                }
+            }
+
+            // Remove typing indicator
+            document.getElementById('typingIndicator')?.remove();
+
+            // Show recommendations
+            await showRecommendations();
+
+            // Show final answer
+            showAnswer();
+
+            isAnalyzing = false;
+        }
+
+        async function activateStep(index) {
+            // Complete previous step
+            if (currentStep >= 0) {
+                const prevStep = document.getElementById(`analysis-step-${currentStep}`);
+                prevStep.classList.remove('active');
+                prevStep.classList.add('completed');
+                prevStep.querySelector('.step-icon').textContent = '✓';
+            }
+
+            currentStep = index;
+
+            // Activate current step
+            const stepEl = document.getElementById(`analysis-step-${index}`);
+            stepEl.classList.add('active');
+
+            await sleep(CONFIG.stepDelay);
+        }
+
+        async function addInsight(insight, index) {
+            const list = document.getElementById('insightsList');
+            
+            const card = document.createElement('div');
+            card.className = `insight-card ${insight.type}`;
+            card.innerHTML = `
+                <div class="insight-header">
+                    <div class="insight-icon">${insight.icon}</div>
+                    <span class="insight-type">${insight.type}</span>
+                </div>
+                <div class="insight-text">${insight.text}</div>
+            `;
+
+            // Insert before typing indicator
+            const typing = document.getElementById('typingIndicator');
+            if (typing) {
+                list.insertBefore(card, typing);
+            } else {
+                list.appendChild(card);
+            }
+
+            document.getElementById('insightCount').textContent = `${index + 1} insights`;
+
+            await sleep(CONFIG.insightDelay);
+        }
+
+        async function showRecommendations() {
+            const list = document.getElementById('recommendationList');
+            list.innerHTML = '';
+
+            // Complete last analysis step
+            const lastStep = document.getElementById(`analysis-step-${analysisSteps.length - 1}`);
+            lastStep.classList.remove('active');
+            lastStep.classList.add('completed');
+            lastStep.querySelector('.step-icon').textContent = '✓';
+
+            for (const rec of recommendations) {
+                const item = document.createElement('div');
+                item.className = 'recommendation-item';
+                item.innerHTML = `
+                    <div class="rec-icon">${rec.icon}</div>
+                    <div class="rec-content">
+                        <div class="rec-title">${rec.title}</div>
+                        <div class="rec-desc">${rec.desc}</div>
+                        <div class="rec-impact">📈 ${rec.impact}</div>
+                    </div>
+                `;
+                list.appendChild(item);
+                await sleep(300);
+            }
+        }
+
+        function showAnswer() {
+            const card = document.getElementById('answerCard');
+            document.getElementById('answerText').innerHTML = finalAnswer;
+            card.classList.add('show');
+        }
+
+        // ============================================
+        // UTILITY
+        // ============================================
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Handle window resize for chart
+        window.addEventListener('resize', () => {
+            setTimeout(drawChart, 100);
+        });
+    </script>
+</body>
+</html>
