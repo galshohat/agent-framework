@@ -299,8 +299,27 @@ Each scanner follows a consistent pattern:
 1. **List files** in the repository
 2. **Read file contents** using read tools
 3. **Analyze** for specific vulnerability patterns
-4. **Report findings** via `report_vulnerability(file, start_line, end_line, description)`
+4. **Report findings** via `report_vulnerability(file, start_line, end_line, description, scanner="ScannerName")`
+   - **Important**: Always include `scanner` parameter with the scanner's name (e.g., `scanner="SecretsScanner"`)
+   - This enables proper attribution in the final `scanner_breakdown` section
 5. **Mark completion** via `mark_file_scanned(file_path)`
+
+### Security Vulnerability Knowledge Base
+
+**📖 See [SECURITY_GUIDE.md](challenges/SECURITY_GUIDE.md) for detailed guidance on what vulnerabilities to look for.**
+
+This guide is your knowledge base for designing effective scanner agents. It provides:
+- **Vulnerability categories** — Secrets, Injection, Auth/Crypto, Dependencies, Infrastructure, Unsafe Patterns
+- **File-to-vulnerability mapping** — Which files contain which types of issues
+- **Layer-based scanning strategy** — How to organize your agents by application layer
+- **Agent design tips** — Why domain-specific scanners are more effective than one general scanner
+
+The guide helps you understand:
+- **What to scan for**: Specific patterns like hardcoded AWS keys, SQL injection, weak crypto algorithms
+- **Where to look**: Which files and directories contain each vulnerability type
+- **How to organize agents**: Split work by security domain (secrets vs. code vs. infra vs. auth/crypto)
+
+Use this guide when writing your scanner agent instructions — it shows you the types of vulnerabilities planted in the vulnerable app and where they're located. This helps you craft precise agent instructions that lead to high detection rates.
 
 ## 🤔 Troubleshooting
 
