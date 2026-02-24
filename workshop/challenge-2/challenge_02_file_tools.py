@@ -12,13 +12,17 @@ Export:
     list_repo_files  — a tool that lists all files in the repository
 """
 
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import _paths  # noqa: F401
+
 import asyncio
 import os
 import nest_asyncio
 nest_asyncio.apply()
 
 from dotenv import load_dotenv
-from agent_framework import tool, ChatAgent
+from agent_framework import tool, Agent
 from typing import Annotated
 from pydantic import Field
 

@@ -1,5 +1,5 @@
 """
-Challenge 07 — Dependency & Infrastructure Scanner
+Challenge 08 — Dependency & Infrastructure Scanner
 ===================================================
 Vulnerabilities aren't only in application code. They hide in:
   - Third-party dependencies with known CVEs
@@ -14,13 +14,17 @@ Export:
     infra_scanner  — an agent that scans deps, Docker, CI/CD, and IaC
 """
 
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import _paths  # noqa: F401
+
 import asyncio
 import os
 import nest_asyncio
 nest_asyncio.apply()
 
 from dotenv import load_dotenv
-from agent_framework import ChatAgent
+from agent_framework import Agent
 
 from shared_models import GITHUB_REPO, VulnerabilityList, create_mcp_client, create_chat_client
 
@@ -33,6 +37,7 @@ chat_client_mcp = create_mcp_client()
 from challenge_01_repo_access import github_mcp_tool
 from challenge_02_file_tools import read_repo_file, list_repo_files
 from challenge_03_memory import scan_memory, report_vulnerability, mark_file_scanned
+from challenge_04_middleware import agent_logging_middleware, tool_logging_middleware
 
 
 # ═════════════════════════════════════════════════════════════════════
@@ -49,8 +54,9 @@ from challenge_03_memory import scan_memory, report_vulnerability, mark_file_sca
 # The agent MUST:
 #   - Use tools: read_repo_file, list_repo_files,
 #     report_vulnerability, mark_file_scanned
-#   - Use context_provider=scan_memory
+#   - Use context_providers=[scan_memory]
 #   - Use response_format=VulnerabilityList for structured output
+#   - Use middleware=[agent_logging_middleware, tool_logging_middleware]
 #   - Call report_vulnerability for EACH finding
 #   - Call mark_file_scanned after analyzing each file
 #
@@ -65,7 +71,7 @@ infra_scanner = None  # Replace with your implementation
 
 
 # ─── Test (DO NOT MODIFY) ────────────────────────────────────────────
-async def test_challenge_07():
+async def test_challenge_08():
     assert infra_scanner is not None, "infra_scanner is not set"
 
     scan_memory.reset()
@@ -90,7 +96,7 @@ async def test_challenge_07():
     print(f"\n🧠 Memory: {len(scan_memory.vulnerabilities)} vulnerabilities")
 
     assert len(scan_memory.vulnerabilities) > 0, "Should find at least one infra issue"
-    print("\n✅ Challenge 07 complete — infrastructure scanner operational!")
+    print("\n✅ Challenge 08 complete — infrastructure scanner operational!")
 
 if __name__ == "__main__":
-    asyncio.run(test_challenge_07())
+    asyncio.run(test_challenge_08())

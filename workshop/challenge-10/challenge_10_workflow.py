@@ -24,35 +24,37 @@ Export:
     security_workflow    — the complete orchestrated workflow
 """
 
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import _paths  # noqa: F401
+
 import asyncio
+import json
 import os
 import logging
 import time
+from datetime import datetime, timezone
+
 import nest_asyncio
 nest_asyncio.apply()
 
-from typing import cast
+from typing import cast, Any
 from dotenv import load_dotenv
 from agent_framework import (
-    ChatAgent, ChatMessage, WorkflowOutputEvent,
-    AgentRunUpdateEvent,
+    Agent, Message, WorkflowEvent, AgentResponseUpdate,
+)
+from agent_framework.orchestrations import (
     # ── Workflow Builders (pick one) ──────────────────────────────────
     MagenticBuilder,    # Option A: manager dynamically delegates to scanners
     GroupChatBuilder,   # Option B: agents collaborate in shared conversation
     HandoffBuilder,     # Option C: agents hand off control in a chain
     ConcurrentBuilder,  # Option D: all agents run in parallel simultaneously
-    # ── Builder-specific event / state types ──────────────────────────
-    # MagenticBuilder events:
-    MagenticOrchestratorEvent, MagenticProgressLedger,
-    # GroupChatBuilder state:
-    GroupChatState,
-    # HandoffBuilder events:
-    HandoffAgentUserRequest, RequestInfoEvent,
-    # ConcurrentBuilder types:
-    AgentExecutorResponse,
 )
 
-from shared_models import GITHUB_REPO, create_mcp_client, create_chat_client
+from shared_models import (
+    GITHUB_REPO, create_mcp_client, create_chat_client,
+    Vulnerability, ScanSummary, ScannerFindings, WorkflowReport,
+)
 
 load_dotenv()
 
@@ -63,18 +65,18 @@ chat_client_mcp = create_mcp_client()
 from challenge_01_repo_access import github_mcp_tool, repo_explorer
 from challenge_02_file_tools import read_repo_file, list_repo_files
 from challenge_03_memory import scan_memory, report_vulnerability, mark_file_scanned
-from challenge_04_secrets_scanner import secrets_scanner
-from challenge_06_code_scanner import code_vuln_scanner
-from challenge_07_infra_scanner import infra_scanner
-from challenge_08_auth_crypto_scanner import auth_crypto_scanner
-from challenge_09_middleware import agent_logging_middleware, tool_logging_middleware
+from challenge_04_middleware import agent_logging_middleware, tool_logging_middleware
+from challenge_05_secrets_scanner import secrets_scanner
+from challenge_07_code_scanner import code_vuln_scanner
+from challenge_08_infra_scanner import infra_scanner
+from challenge_09_auth_crypto_scanner import auth_crypto_scanner
 
 
 # ═════════════════════════════════════════════════════════════════════
 # TODO 1: Define TASK_PROMPT
 #
 # This is the main task description passed to your workflow via
-# security_workflow.run_stream(TASK_PROMPT).
+# security_workflow.run(TASK_PROMPT, stream=True).
 #
 # It should instruct the scanning team to:
 #   - Comprehensively scan the repository for ALL vulnerability types
@@ -97,8 +99,8 @@ TASK_PROMPT = None  # Replace with your implementation
 # TODO 2: Define FINAL_ANSWER_PROMPT
 #
 # This tells the manager how to produce its final message after all
-# scanners have finished. Used with MagenticBuilder's
-# with_manager(final_answer_prompt=FINAL_ANSWER_PROMPT).
+# scanners have finished. Used with MagenticBuilder's constructor:
+# MagenticBuilder(..., final_answer_prompt=FINAL_ANSWER_PROMPT).
 #
 # The manager's final message is for display only — scoring comes
 # from memory. But a good summary helps you understand what was found.
@@ -121,59 +123,67 @@ FINAL_ANSWER_PROMPT = None  # Replace with your implementation
 # TODO 3: Build your orchestrated security_workflow
 #
 # You have these components from previous challenges:
-#   - secrets_scanner       (from challenge 04)
-#   - code_vuln_scanner     (from challenge 06)
-#   - infra_scanner         (from challenge 07)
-#   - auth_crypto_scanner   (from challenge 08)
+#   - secrets_scanner       (from challenge 05)
+#   - code_vuln_scanner     (from challenge 07)
+#   - infra_scanner         (from challenge 08)
+#   - auth_crypto_scanner   (from challenge 09)
 #   - scan_memory           (from challenge 03)
-#   - agent/tool middleware (from challenge 09)
+#   - agent/tool middleware (from challenge 04)
 #
 # Choose a Builder pattern:
 #
 #   ── Option A: MagenticBuilder (dynamic delegation) ─────────────────
-#   Uses: MagenticBuilder, MagenticOrchestratorEvent, MagenticProgressLedger
+#   Uses: WorkflowEvent (event.type == "executor_invoked" / "output" / ...)
 #
-#     manager = ChatAgent(chat_client=chat_client, name="ScanManager", ...)
-#     workflow = (MagenticBuilder()
-#       .participants([scanner1, scanner2, ...])
-#       .with_manager(agent=manager, max_round_count=N,
-#                     max_stall_count=5,
-#                     final_answer_prompt=FINAL_ANSWER_PROMPT)
-#       .build())
+#     manager = Agent(client=chat_client, name="ScanManager", ...)
+#     workflow = MagenticBuilder(
+#         participants=[scanner1, scanner2, ...],
+#         manager_agent=manager,
+#         max_round_count=N,
+#         max_stall_count=5,
+#         final_answer_prompt=FINAL_ANSWER_PROMPT,
+#     ).build()
 #
 #   Event loop:
-#     async for event in workflow.run_stream(TASK_PROMPT):
-#         if isinstance(event, MagenticOrchestratorEvent):
-#             if isinstance(event.data, MagenticProgressLedger):
-#                 print("Progress ledger update")
+#     async for event in workflow.run(TASK_PROMPT, stream=True):
+#         if event.type == "executor_invoked":
+#             agent_id = event.executor_id  # which agent is speaking
+#             token = event.data            # streaming token (str)
+#         elif event.type == "output":
+#             print("Final output:", event.data)
 #
 #   ── Option B: GroupChatBuilder (collaborative cross-checking) ──────
-#   Uses: GroupChatBuilder, GroupChatState
+#   Uses: WorkflowEvent (event.type == "output" / ...)
 #
-#     workflow = (GroupChatBuilder()
-#       .participants([scanner1, scanner2, ...])
-#       .max_rounds(N)
-#       .build())
+#     workflow = GroupChatBuilder(
+#         participants=[scanner1, scanner2, ...],
+#         selection_func=my_selector,         # or orchestrator_agent=agent
+#         orchestrator_name="MyOrchestrator",
+#         termination_condition=my_condition,
+#     ).build()
 #
 #   ── Option C: HandoffBuilder (sequential escalation chain) ─────────
-#   Uses: HandoffBuilder, HandoffAgentUserRequest, RequestInfoEvent
+#   Uses: WorkflowEvent (event.type == "output" / "request_info" / ...)
 #
-#     workflow = (HandoffBuilder()
-#       .with_start_agent(scanner1)
-#       .add_handoff(from_agent=scanner1, to_agent=scanner2,
-#                    description="Hand off to code vuln scanner")
-#       .add_handoff(from_agent=scanner2, to_agent=scanner3, ...)
-#       .build())
+#     workflow = HandoffBuilder(
+#         start_agent=scanner1,
+#         handoffs=[
+#             (scanner1, scanner2, "Hand off to code vuln scanner"),
+#             (scanner2, scanner3, "Hand off to infra scanner"),
+#         ],
+#     ).build()
 #
 #   ── Option D: ConcurrentBuilder (parallel fan-out) ─────────────────
-#   Uses: ConcurrentBuilder, AgentExecutorResponse
+#   Uses: WorkflowEvent (event.type == "executor_response" / ...)
 #
-#     workflow = (ConcurrentBuilder()
-#       .add_agent(scanner1, prompt="Scan for secrets...")
-#       .add_agent(scanner2, prompt="Scan for code vulns...")
-#       .build())
+#     workflow = ConcurrentBuilder(
+#         agents=[
+#             (scanner1, "Scan for secrets..."),
+#             (scanner2, "Scan for code vulns..."),
+#         ],
+#     ).build()
 #
-# If using MagenticBuilder, you'll need a manager agent (ChatAgent)
+# If using MagenticBuilder, you'll need a manager agent (Agent)
 # to coordinate the scanners. Think about:
 #   - What instructions should the manager have?
 #   - How many rounds should the conversation go?
@@ -183,6 +193,50 @@ FINAL_ANSWER_PROMPT = None  # Replace with your implementation
 # ═════════════════════════════════════════════════════════════════════
 
 security_workflow = None  # Replace with your implementation
+
+
+# ─── Report Builder (DO NOT MODIFY) ──────────────────────────────────────────────────
+def build_workflow_report(
+    agent_calls: dict[str, int],
+    elapsed: float,
+) -> WorkflowReport:
+    """Build a structured WorkflowReport from scan_memory."""
+    vulns = [
+        Vulnerability(
+            file=v["file"],
+            start_line=v["start_line"],
+            end_line=v["end_line"],
+            description=v["description"],
+        )
+        for v in scan_memory.vulnerabilities
+    ]
+
+    scanner_names = [s for s in agent_calls if s != "magentic_orchestrator"]
+    breakdown: dict[str, ScannerFindings] = {}
+    for scanner in scanner_names:
+        scanner_vulns = [
+            v for v in scan_memory.vulnerabilities
+            if v.get("scanner", "unknown") == scanner
+        ]
+        scanner_files = sorted({v["file"] for v in scanner_vulns})
+        breakdown[scanner] = ScannerFindings(
+            findings=len(scanner_vulns),
+            files=scanner_files,
+        )
+
+    return WorkflowReport(
+        workshop_id="agent-framework-security-scan",
+        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        repository=GITHUB_REPO,
+        scan_summary=ScanSummary(
+            total_vulnerabilities=len(vulns),
+            files_scanned=len(scan_memory.files_covered),
+            scanners_used=scanner_names,
+        ),
+        vulnerabilities=vulns,
+        files_covered=sorted(scan_memory.files_covered),
+        scanner_breakdown=breakdown,
+    )
 
 
 # ─── Test (DO NOT MODIFY) ────────────────────────────────────────────
@@ -219,9 +273,9 @@ async def test_challenge_10():
     start_time = time.time()
     agent_calls: dict[str, int] = {}
 
-    async for event in security_workflow.run_stream(TASK_PROMPT):
-        if isinstance(event, AgentRunUpdateEvent):
-            eid = event.executor_id
+    async for event in security_workflow.run(TASK_PROMPT, stream=True):
+        if event.type == "executor_invoked":
+            eid = event.executor_id or str(event.data)
             if eid not in agent_calls:
                 emoji = {
                     "SecretsScanner": "🔑", "CodeVulnScanner": "🐛",
@@ -237,7 +291,7 @@ async def test_challenge_10():
 
     # ── Results from memory ──
     print(f"\n🧠 Vulnerabilities in memory: {len(scan_memory.vulnerabilities)}")
-    print(f"📂 Files covered: {len(scan_memory.files_covered)}")
+    print(f"📂 Files covered: {len(scan_memory.files_covered)} — {sorted(scan_memory.files_covered)}")
 
     for v in scan_memory.vulnerabilities[:10]:
         print(f"   📌 {v['file']}:{v['start_line']}-{v['end_line']} — {v['description'][:60]}")
@@ -247,38 +301,24 @@ async def test_challenge_10():
     assert len(scan_memory.vulnerabilities) > 0, \
         "Memory should have vulnerabilities after the scan"
 
-    # ── Export results to JSON ──
-    import json
-    from datetime import datetime
-    
-    output_data = {
-        "workshop_id": "agent-framework-security-scan",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "repository": GITHUB_REPO,
-        "scan_summary": {
-            "total_vulnerabilities": len(scan_memory.vulnerabilities),
-            "files_scanned": len(scan_memory.files_covered),
-            "scanners_used": list(agent_calls.keys()),
-            "scan_duration_seconds": round(elapsed, 1),
-        },
-        "vulnerabilities": list(scan_memory.vulnerabilities),
-        "files_covered": sorted(scan_memory.files_covered),
-        "scanner_breakdown": {
-            scanner: {
-                "findings": sum(1 for v in scan_memory.vulnerabilities 
-                              if v.get('scanner', 'unknown') == scanner),
-                "files": sorted({v['file'] for v in scan_memory.vulnerabilities 
-                               if v.get('scanner', 'unknown') == scanner})
-            } for scanner in agent_calls.keys()
-        }
-    }
-    
-    output_file = "workshop/challenge_10_output.json"
-    with open(output_file, 'w') as f:
-        json.dump(output_data, f, indent=2)
-    
+    # ── Build structured report ──
+    report = build_workflow_report(agent_calls, elapsed)
+    print(f"\n📋 Workflow Report:")
+    print(f"   Total vulnerabilities: {report.scan_summary.total_vulnerabilities}")
+    print(f"   Files scanned: {report.scan_summary.files_scanned}")
+    print(f"   Scanners used: {report.scan_summary.scanners_used}")
+    for scanner_name, findings in report.scanner_breakdown.items():
+        print(f"   {scanner_name}: {findings.findings} findings in {findings.files}")
+
+    # ── Save to JSON ──
+    output_file = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..", "challenge_10_output.json"
+    )
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, "w") as f:
+        json.dump(report.model_dump(), f, indent=2)
     print(f"\n💾 Results saved to: {output_file}")
-    print(f"   Run: python workshop/score_workflow.py {output_file}")
 
     print(f"\n{'=' * 60}")
     print("✅ Challenge 10 complete — run the test runner to see your score!")

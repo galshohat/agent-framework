@@ -1,5 +1,5 @@
 """
-Challenge 09 — Observability Middleware
+Challenge 04 — Observability Middleware
 =======================================
 In production, you need visibility into what your scanning agents
 are doing: which files they're reading, which tools they're calling,
@@ -13,6 +13,10 @@ Export:
     tool_logging_middleware     — middleware that logs tool invocations
 """
 
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import _paths  # noqa: F401
+
 import asyncio
 import os
 import time
@@ -21,8 +25,8 @@ nest_asyncio.apply()
 
 from dotenv import load_dotenv
 from agent_framework import (
-    AgentRunContext, FunctionInvocationContext,
-    ChatAgent
+    AgentContext, FunctionInvocationContext,
+    Agent, agent_middleware, function_middleware
 )
 from typing import Callable, Awaitable
 
@@ -45,15 +49,21 @@ from challenge_02_file_tools import read_repo_file, list_repo_files
 #   - Time how long the agent takes
 #   - Log when the agent finishes (with duration)
 #
-# Middleware signature:
+# IMPORTANT: You MUST decorate with @agent_middleware so the
+# framework recognizes this as agent-level middleware.
+#
+# Signature:
+#   @agent_middleware
 #   async def agent_logging_middleware(
-#       context: AgentRunContext,
-#       next: Callable[[AgentRunContext], Awaitable[None]],
+#       context: AgentContext,
+#       call_next: Callable[[], Awaitable[None]],
 #   ) -> None:
 #
 # Think about:
-#   - What information is available on AgentRunContext?
-#   - How do you pass control to the actual agent? (call next)
+#   - What information is available on AgentContext?
+#     (e.g., context.messages for the conversation history)
+#   - How do you pass control to the actual agent? (await call_next())
+#   - Note: call_next() takes NO arguments
 #   - Where do you measure start/end time?
 #
 # Assign to: agent_logging_middleware
@@ -69,7 +79,11 @@ agent_logging_middleware = None  # Replace with your implementation
 #   - Log which tool is being called and with what arguments
 #   - Log the tool's result (truncated if long)
 #
-# Middleware signature:
+# IMPORTANT: You MUST decorate with @function_middleware so the
+# framework recognizes this as function-level middleware.
+#
+# Signature:
+#   @function_middleware
 #   async def tool_logging_middleware(
 #       context: FunctionInvocationContext,
 #       next: Callable[[FunctionInvocationContext], Awaitable[None]],
@@ -77,7 +91,9 @@ agent_logging_middleware = None  # Replace with your implementation
 #
 # Think about:
 #   - What properties does FunctionInvocationContext have?
-#   - How do you get the function name and arguments?
+#     (e.g., context.function.name, context.arguments, context.result)
+#   - How do you invoke the tool? (await next())
+#   - Note: next() takes NO arguments (same as agent middleware)
 #   - How do you get the result after calling next()?
 #
 # Assign to: tool_logging_middleware
@@ -87,7 +103,7 @@ tool_logging_middleware = None  # Replace with your implementation
 
 
 # ─── Test (DO NOT MODIFY) ────────────────────────────────────────────
-async def test_challenge_09():
+async def test_challenge_04():
     assert agent_logging_middleware is not None, "agent_logging_middleware is not set"
     assert tool_logging_middleware is not None, "tool_logging_middleware is not set"
 
@@ -104,7 +120,7 @@ async def test_challenge_09():
         f"List the files in {GITHUB_REPO} and then read the contents of app.py"
     )
     print(f"\n📝 Agent response: {result.text[:200]}...")
-    print("\n✅ Challenge 09 complete — observability middleware working!")
+    print("\n✅ Challenge 04 complete — observability middleware working!")
 
 if __name__ == "__main__":
-    asyncio.run(test_challenge_09())
+    asyncio.run(test_challenge_04())
